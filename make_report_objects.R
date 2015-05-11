@@ -1,171 +1,135 @@
-#### find previously saved data if exists ####
-oldthere <- FALSE
-dataDir <- "PatientData"
-oldData <- list.files(path=dataDir, pattern=".*.RData", full.names=T, recursive=T)
-if(length(oldData)>0) {
-  message("Going to load all previously saved data at a later stage...")
-  message("currently only getting setnames!")
-  oldthere <- TRUE 
-  bore <- lapply(oldData, 
-                 function(x) { 
-                   load(x)
-                   return(as.character(allpatdata$sites.qc$setName))
-                   })
-  sites.qc.old.setName <- do.call(c, bore)
-  rm(bore)
-}
-
 #### load up require packages + objects #### 
 source("helper_functions.R")
-dbConn <- connectToIntSitesDB(user='3y996DKX7i',password='7j32ue9j3l')
+source("../intSiteRetriever/intSiteRetriever.R")
+source("../genomicHeatmapMaker/CancerGeneList/onco_genes.R")
+
+#INPUTS: either GTSP numbers or patient name
+#        csv file/table GTSP to sampleName
+
 
 #### Update Mysql table for each sample within a trial for newly processed samples ####
-updateSetstable <- function(dbConn) {
-	# extract patient, timepoint, celltype, and GTSP identifiers from the setname #
-	sqls <- c("UPDATE intsites.genetherapy_samples SET
-            celltype=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-5),'-',1),
-            time=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-4),'-',1),
-            patient=replace(SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-6),'-',1),
-                                            'XSCIDp',''),
-            SpecimenAccNum=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-3),'-',1),
-            enzyme='FRAG', gender='M' WHERE celltype = '' 
-            AND setname like '%GTSP%' AND trial='FirstSCID'",
-            
-            "UPDATE intsites.genetherapy_samples SET
-            celltype=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-5),'-',1),
-            time=SUBSTRING_INDEX(SUBSTRING_INDEX(setname, '-',-4),'-',1),
-            patient=replace(SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-6),'-',1),
-                                            'XSCID',''),
-            SpecimenAccNum=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-3),'-',1),
-            enzyme='FRAG', gender='M' WHERE celltype = '' 
-            AND setname like '%GTSP%' AND trial='sinSCID'",
-            
-            "UPDATE intsites.genetherapy_samples SET
-            celltype=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-5),'-',1),
-            time=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-4),'-',1),
-            patient=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-6), '-',1),
-            SpecimenAccNum=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-3),'-',1),
-            enzyme='FRAG', gender='M' WHERE celltype = '' 
-            AND setname like '%GTSP%' AND trial='WasLenti'",			  
-            
-            "UPDATE intsites.genetherapy_samples SET
-            celltype=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-5),'-',1),
-            time=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-4),'-',1),
-            patient=replace(SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-6),'-',1),
-                                            'bThal',''),
-            SpecimenAccNum=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-3),'-',1), 
-            enzyme='FRAG' WHERE celltype = '' 
-            AND setname like '%GTSP%' AND trial='betaThal'",
-            
-            "UPDATE intsites.genetherapy_samples SET gender = if(patient='pPLB','M','F'),
-            time=if(time like '%preinfusio%','d0',time)",
-            
-            "UPDATE intsites.genetherapy_samples SET time = REPLACE(time,'_','.')",
-            
-            "UPDATE intsites.geneTherapy_samples set time='d0' WHERE time like '%hit%' or   
-            time like '%d0.%'",
-            
-            "UPDATE intsites.genetherapy_samples JOIN specimen_management.GTSP 
-            USING (SpecimenAccNum) 
-            SET intsites.genetherapy_samples.location=specimen_management.GTSP.location",
-            
-	          "UPDATE intsites.genetherapy_samples JOIN specimen_management.GTSP 
-	          USING (SpecimenAccNum) 
-	          SET intsites.genetherapy_samples.VCN=specimen_management.GTSP.VCN",
-            
-	          "UPDATE intsites.genetherapy_samples JOIN intsites.sets on name=setname 
-            SET intsites.genetherapy_samples.passingsetsize=intsites.sets.passingsetsize 
-            WHERE intsites.genetherapy_samples.passingsetsize=0")
-	
-	sapply(sqls, function(x) dbSendQuery(dbConn,x))
-	
-	# fix the new patient identifier to match the old patient naming schema for FIRST SCID TRIAL
-	sqls <- c("UPDATE intsites.genetherapy_samples SET patient='1' 
-            WHERE patient='ML' and setname like '%GTSP%' AND trial='FirstSCID'", 
-            "UPDATE intsites.genetherapy_samples SET patient='2' 
-            WHERE patient='RN' and setname like '%GTSP%' AND trial='FirstSCID'", 
-            "UPDATE intsites.genetherapy_samples SET patient='4' 
-            WHERE patient='CW' and setname like '%GTSP%' AND trial='FirstSCID'", 
-            "UPDATE intsites.genetherapy_samples SET patient='5' 
-            WHERE patient='RD' and setname like '%GTSP%' AND trial='FirstSCID'", 
-            "UPDATE intsites.genetherapy_samples SET patient='6' 
-            WHERE patient='BA' and setname like '%GTSP%' AND trial='FirstSCID'", 
-            "UPDATE intsites.genetherapy_samples SET patient='7' 
-            WHERE patient='FM' and setname like '%GTSP%' AND trial='FirstSCID'", 
-            "UPDATE intsites.genetherapy_samples SET patient='8' 
-            WHERE patient='HR' and setname like '%GTSP%' AND trial='FirstSCID'", 
-            "UPDATE intsites.genetherapy_samples SET patient='9' 
-            WHERE patient='RE' and setname like '%GTSP%' AND trial='FirstSCID'", 
-            "UPDATE intsites.genetherapy_samples SET patient='10' 
-            WHERE patient='KA' and setname like '%GTSP%' AND trial='FirstSCID'")
-	sapply(sqls, function(x) dbSendQuery(dbConn,x))
-}
-updateSetstable(dbConn)
+# updateSetstable <- function(dbConn) {
+# 	# extract patient, timepoint, celltype, and GTSP identifiers from the setname #
+# 	sqls <- c("UPDATE intsites.genetherapy_samples SET
+#             celltype=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-5),'-',1),
+#             time=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-4),'-',1),
+#             patient=replace(SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-6),'-',1),
+#                                             'XSCIDp',''),
+#             SpecimenAccNum=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-3),'-',1),
+#             enzyme='FRAG', gender='M' WHERE celltype = '' 
+#             AND setname like '%GTSP%' AND trial='FirstSCID'",
+#             
+#             "UPDATE intsites.genetherapy_samples SET
+#             celltype=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-5),'-',1),
+#             time=SUBSTRING_INDEX(SUBSTRING_INDEX(setname, '-',-4),'-',1),
+#             patient=replace(SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-6),'-',1),
+#                                             'XSCID',''),
+#             SpecimenAccNum=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-3),'-',1),
+#             enzyme='FRAG', gender='M' WHERE celltype = '' 
+#             AND setname like '%GTSP%' AND trial='sinSCID'",
+#             
+#             "UPDATE intsites.genetherapy_samples SET
+#             celltype=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-5),'-',1),
+#             time=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-4),'-',1),
+#             patient=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-6), '-',1),
+#             SpecimenAccNum=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-3),'-',1),
+#             enzyme='FRAG', gender='M' WHERE celltype = '' 
+#             AND setname like '%GTSP%' AND trial='WasLenti'",			  
+#             
+#             "UPDATE intsites.genetherapy_samples SET
+#             celltype=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-5),'-',1),
+#             time=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-4),'-',1),
+#             patient=replace(SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-6),'-',1),
+#                                             'bThal',''),
+#             SpecimenAccNum=SUBSTRING_INDEX(SUBSTRING_INDEX(setname,'-',-3),'-',1), 
+#             enzyme='FRAG' WHERE celltype = '' 
+#             AND setname like '%GTSP%' AND trial='betaThal'",
+#             
+#             "UPDATE intsites.genetherapy_samples SET gender = if(patient='pPLB','M','F'),
+#             time=if(time like '%preinfusio%','d0',time)",
+#             
+#             "UPDATE intsites.genetherapy_samples SET time = REPLACE(time,'_','.')",
+#             
+#             "UPDATE intsites.geneTherapy_samples set time='d0' WHERE time like '%hit%' or   
+#             time like '%d0.%'",
+#             
+#             "UPDATE intsites.genetherapy_samples JOIN specimen_management.GTSP 
+#             USING (SpecimenAccNum) 
+#             SET intsites.genetherapy_samples.location=specimen_management.GTSP.location",
+#             
+# 	          "UPDATE intsites.genetherapy_samples JOIN specimen_management.GTSP 
+# 	          USING (SpecimenAccNum) 
+# 	          SET intsites.genetherapy_samples.VCN=specimen_management.GTSP.VCN",
+#             
+# 	          "UPDATE intsites.genetherapy_samples JOIN intsites.sets on name=setname 
+#             SET intsites.genetherapy_samples.passingsetsize=intsites.sets.passingsetsize 
+#             WHERE intsites.genetherapy_samples.passingsetsize=0")
+# 	
+# 	sapply(sqls, function(x) dbSendQuery(dbConn,x))
+# 	
+# 	# fix the new patient identifier to match the old patient naming schema for FIRST SCID TRIAL
+# 	sqls <- c("UPDATE intsites.genetherapy_samples SET patient='1' 
+#             WHERE patient='ML' and setname like '%GTSP%' AND trial='FirstSCID'", 
+#             "UPDATE intsites.genetherapy_samples SET patient='2' 
+#             WHERE patient='RN' and setname like '%GTSP%' AND trial='FirstSCID'", 
+#             "UPDATE intsites.genetherapy_samples SET patient='4' 
+#             WHERE patient='CW' and setname like '%GTSP%' AND trial='FirstSCID'", 
+#             "UPDATE intsites.genetherapy_samples SET patient='5' 
+#             WHERE patient='RD' and setname like '%GTSP%' AND trial='FirstSCID'", 
+#             "UPDATE intsites.genetherapy_samples SET patient='6' 
+#             WHERE patient='BA' and setname like '%GTSP%' AND trial='FirstSCID'", 
+#             "UPDATE intsites.genetherapy_samples SET patient='7' 
+#             WHERE patient='FM' and setname like '%GTSP%' AND trial='FirstSCID'", 
+#             "UPDATE intsites.genetherapy_samples SET patient='8' 
+#             WHERE patient='HR' and setname like '%GTSP%' AND trial='FirstSCID'", 
+#             "UPDATE intsites.genetherapy_samples SET patient='9' 
+#             WHERE patient='RE' and setname like '%GTSP%' AND trial='FirstSCID'", 
+#             "UPDATE intsites.genetherapy_samples SET patient='10' 
+#             WHERE patient='KA' and setname like '%GTSP%' AND trial='FirstSCID'")
+# 	sapply(sqls, function(x) dbSendQuery(dbConn,x))
+# }
+# updateSetstable(dbConn)
 
 ####  get set names with other metadata #### 
-sets <- dbGetQuery(dbConn,"SELECT setName, celltype, patient, time as timepoint, 
-                   Trial, upper(enzyme) as enzyme, VCN FROM intsites.genetherapy_samples")
+# sets <- dbGetQuery(dbConn,"SELECT setName, celltype, patient, time as timepoint, 
+#                    Trial, upper(enzyme) as enzyme, VCN FROM intsites.genetherapy_samples")
 
-sets$Trial[grepl("betaThal",sets$Trial,ignore.case=T)] <- "betaThal"
+# sets$Trial[grepl("betaThal",sets$Trial,ignore.case=T)] <- "betaThal"
 # fix month/day mislabelling of old betaThal samples from pPLB #
 # rows <- with(sets,Trial=="betaThal" & patient=="pPLB" & grepl("m",timepoint))
 # sets$timepoint[rows] <- sub("(\\d+)m","d\\1",sets$timepoint[rows])
 
 # let's make sure there are no patients with the same name in different trials! #
-stopifnot(all(count(unique(sets[,c("patient","Trial")]))$freq==1))
+# stopifnot(all(count(unique(sets[,c("patient","Trial")]))$freq==1))
 
 ####  add replicate information for abundance estimation by soniclength #### 
 ## fix d0 timepoints ##
-sets$timepoint[sets$timepoint %in% c("d0","0")] <- "d0"
+sets$timepoint[sets$timepoint %in% c("d0","0")] <- "d0" #can be done in db as REGEXP in future
 sets$timepointDay <- timepointDays(sets$timepoint)
-sets$Replicate <- 1
-rows <- grepl("GTSP",sets$setName)
-sets$Replicate[rows] <- as.numeric(sub(".+-(\\d+)-.+","\\1",sets$setName[rows]))
-replicates <- sapply(with(sets,
-                          tapply(Replicate,
-                                 paste(celltype,patient,timepointDay,Trial),
-                                 unique)),
-                     function(x) 1:length(x), simplify=F)
-Fishy <- c()
-for(f in names(replicates)) {
-    rows <- with(sets,paste(celltype,patient,timepointDay,Trial))==f
-    ## make sure number of replicates match up to what's calculated...
-    ## unless from OLD SCID1 trial or betaThal
-    if((length(which(rows))!=length(replicates[[f]])) & 
-         !grepl("FirstSCID",f) & !grepl("betaThal",f)) {
-      Fishy <- c(Fishy,f)
-      message("Fishy ",f)
-    }
-    sets$Replicate[rows] <- replicates[[f]]
-}
 
-for(f in Fishy) {
-  message("taking care of Fishy:",f)
-  rows <- which(with(sets, paste(celltype,patient,timepointDay,Trial)==f))
-  sets$Replicate[rows] <- 1:length(rows)
-}
+#This information will be provided by the GTSP_sampleName table
+#GTSP duplications mean there were >1 replicate for that GTSP
 
-#### get new data & required annotations #####
-message("Getting new data")
-if(oldthere) {
-  rows <- !sets$setName %in% sites.qc.old.setName
-} else {
-  rows <- TRUE
-}
+# sets$Replicate <- 1
+# rows <- grepl("GTSP",sets$setName)
+# sets$Replicate[rows] <- as.numeric(sub(".+-(\\d+)-.+","\\1",sets$setName[rows]))
+# replicates <- sapply(with(sets,
+#                           tapply(Replicate,
+#                                  paste(celltype,patient,timepointDay,Trial),
+#                                  unique)),
+#                      function(x) 1:length(x), simplify=F)
 
-if(!any(rows)) {
-  stop("No new samples found that needs to be appended to the old data.")
-}
-
-## get qc passed sites for all sets ##
+## get qc passed sites for all sets ## 
+#getUniqueSites from intSiteRetriever
 sites.qc <- getSitesFromDB(dbConn, setName=sets$setName[rows], 
                            freeze="hg18", nrstOnco=T, nrst5pOnco=T, nrstGene=T,
                            nrst5pGene=T, inGene=T)
 sites.qc$Position <- as.integer(sites.qc$Position)
-sites.qc$setposid <- with(sites.qc, paste0(setName,Chr,strand,Position))
-sites.qc <- merge(sites.qc,sets,all.x=T,by="setName")
+sites.qc$setposid <- with(sites.qc, paste0(setName,Chr,strand,Position)) #new PK
+sites.qc <- merge(sites.qc,sets,all.x=T,by="setName") #adding metadata
 
 ## get all sequences per site for all sets ##
+#getUniqueBreakpoints from intSiteRetriever
 sites <- getSitesFromDB(dbConn,setName=sets$setName[rows], freeze="hg18", allsites=T)
 sites$Position <- as.integer(sites$Position)
 sites$setposid <- with(sites,paste0(setName,Chr,Ort,Position))
@@ -175,6 +139,7 @@ sites <- merge(sites,sets,all.x=T,by="setName")
 sites$setposid <- NULL; sites.qc$setposid <- NULL;
 
 ## get the multihits for dangerously abundant hits in repeat elements ##
+#will be handled by intSiteRetriever, eventually...
 sites.multi <- getSitesFromDB(dbConn, setName=sets$setName[rows], 
                               freeze="hg18", multihit=T)
 sites.multi <- subset(sites.multi, isMultiHit)
@@ -201,6 +166,7 @@ wantedgenes <- toupper(c('HIVEP3', 'VAV3', 'NOTCH2', 'ITPR1', 'FOXP1', 'MDS1',
                          'RUNX1', 'LMO2', 'CCND2', 'BMI1', 'EVI1'))
 
 ##  get all oncogenes ##
+#this will be from the CancerGeneList R project
 oncos <- dbGetQuery(dbConn,"select * from oncogenelists.allonco")$geneName
 oncos <- unlist(strsplit(gsub(" ","",toupper(oncos)),"\\|"))
 load("oncogenes.rl.Rdata")
@@ -209,6 +175,8 @@ oncogenes.rl <- as(oncogenes.rl,"GRanges")
 
 allgenes.rd <- makeGRanges(
   dbGetQuery(dbConn,"(select distinct geneName, Chrom, strand, txStart, txEnd from hg18.refflat) UNION (select distinct kgXref.geneSymbol as geneName, knownGene.chrom as Chrom, knownGene.strand as strand, txStart, txEnd FROM hg18.knownGene JOIN hg18.kgXref ON knownGene.name=kgXref.kgID)"))
+
+#ACTUALLY START DOING ANNOTATIONS HERE
 sites.rd <- getNearestFeature(sites.rd, allgenes.rd, colnam="nrstGene")  
 sites.rd <- getNearestFeature(sites.rd, allgenes.rd, colnam="nrstGene", side="5p") 
 sites.rd <- getSitesInFeature(sites.rd, allgenes.rd, colnam="inGene")
@@ -227,21 +195,16 @@ allIntSites$end <- NULL;
 allIntSites$width <- NULL;
 sites.multi <- allIntSites
 rm("sites.rd","allIntSites")
+#has single hits and multihits at this point
 sites.multi <- merge(sites.multi, count(sites.multi,"Sequence"))
-
-####  get primerids & assign them back to all sequences #### 
-likeClause <- paste(unique(sets$setName[rows]),sep="", collapse="%' or defline like '")
-query <- paste0("SELECT defline as Sequence, seq as primerid 
-               FROM seqsprimerid WHERE defline LIKE '",likeClause,"%'")
-primerids <- data.frame(dbGetQuery(dbConn,query), stringsAsFactors=F)
-sites <- merge(sites,primerids,all.x=T)
-sites$primeridlen <- nchar(sites$primerid)
 
 ####  setup gene columns for later analysis #### 
 sites.qc$nrstOncoGeneName <- toupper(as.character(sites.qc$nrstOncoGeneName))
 sites.qc$nrstGene <- toupper(as.character(sites.qc$nrstGene))
 sites.qc$X5pnrstGene <- toupper(as.character(sites.qc$X5pnrstGene))
 sites.qc$inGene <- toupper(as.character(sites.qc$inGene))
+
+#think about alternate schema for this, using colors, fonts (bold, etc.)
 sites.qc$geneType <- with(sites.qc,ifelse(inGene=="FALSE",
                                           nrstGene, 
                                           paste0(inGene,"*")))
@@ -257,6 +220,7 @@ sites.qc$geneType <- with(sites.qc,
                                    unlist(lapply(lapply(strsplit(nrstGene,","),
                                                         "%in%",wantedgenes),any)), 
                                  paste0(geneType,"!"), geneType))
+
 sites.qc$inTheGene <- with(sites.qc,ifelse(inGene=="FALSE",FALSE,TRUE))
 sites.qc$oncoWithin50kb <- abs(sites.qc$nrstOncoGeneDist)<=50000 | 
   abs(sites.qc$nrst5pOncoGeneDist)<=50000
@@ -311,29 +275,6 @@ sites.qc$Aliasposid <- with(sites.qc,paste0(Alias,posID))
 
 pats.to.do <- as.character(unique(sites.qc$patient))
 
-#### add back to old data ####
-if(oldthere) {
-  message("adding new data to old data")
-  
-  toLoad <- sapply(pats.to.do, 
-                   function(pat) grep(paste0("_",pat,".RData"), oldData, 
-                                      value=T, fixed=T), USE.NAMES=FALSE)
-  
-  # remove elements which found no matches which is true for new patient data! #
-  toLoad <- unlist(toLoad)
-  
-  bore <- lapply(toLoad, function(x) { load(x); return(allpatdata)})
-  sites.qc.old <- do.call(rbind, lapply(bore,"[[","sites.qc"))
-  sites.old <- do.call(rbind, lapply(bore,"[[","sites"))
-  sites.multi.old <- do.call(rbind, lapply(bore,"[[","sites.multi"))
-  rm("bore","toLoad")
-  cleanit <- gc() 
-  
-  sites <- rbind(sites, sites.old[,names(sites)])
-  sites.qc <- rbind(sites.qc, sites.qc.old[,names(sites.qc)])
-  sites.multi <- rbind(sites.multi, sites.multi.old[,names(sites.multi)])
-}
-
 sites <- arrange(sites, Trial,patient,timepointDay,celltype,Chr,Position) 
 sites.qc <- arrange(sites.qc, Trial,patient,timepointDay,celltype,Chr,Position)
 sites.multi <- arrange(sites.multi, Trial,patient,timepointDay,celltype,Chr,Position) 
@@ -381,27 +322,6 @@ if(length(pats.to.do)>0) {
     message(sec.num.messg,") Loading newly saved data.")
     filename <- grep(paste0("_",pat,".RData"), oldData, value=T,fixed=T)
     load(filename)
-    
-    ## cluster positions based on Alias ##
-    doPosClust <- FALSE
-    if(doPosClust) {
-      cl <- makeCluster(3)
-      registerDoParallel(cl)
-      sec.num.messg <- sec.num.messg + 1
-      message(sec.num.messg,") Clustering positions by Alias.")
-      rows <- allpatdata$sites$isqc98
-      bore <- makeGRanges(allpatdata$sites[rows,], soloStart=T, 
-                          chromCol='Chr', strand='Ort')
-      bore$qEnd2 <- NULL
-      bore <- clusterSites(psl.rd=bore, grouping=bore$Alias)
-      newValues <- sapply(split(bore$clusteredPosition, bore$Aliasposid),unique)
-      stopifnot(is.numeric(newValues))
-      allpatdata$sites$Position[rows] <- 
-        as.numeric(newValues[allpatdata$sites$Aliasposid[rows]])
-      allpatdata$sites.qc$Position <- 
-        as.numeric(newValues[allpatdata$sites.qc$Aliasposid])
-      rm("rows","bore")
-      stopCluster(cl)
       
       # re-create alias-posid column to pool sites and perform subsequent analysis #
       allpatdata$sites$posID <- with(allpatdata$sites, 
@@ -416,99 +336,76 @@ if(length(pats.to.do)>0) {
     }
     
     ## combine unique sites with multihits & get OTUs ##	
-    sec.num.messg <- sec.num.messg + 1
-    message(sec.num.messg,") Making OTUs by Alias.")
-    cl <- makeCluster(3)
-    registerDoParallel(cl)
-    
-    # lets isolate really big Aliases since they can occupy crap load of memory #
-    aliasCounts <- table(allpatdata$sites.all$Alias) > 200000
-    if(any(aliasCounts)) {
-      message("Skipping OTU step for: ",
-              paste(names(which(aliasCounts)),collapse=","))
-      #       sites.all.otus <- lapply(names(which(aliasCounts)), function(x)
-      #         with(droplevels(subset(allpatdata$sites.all,Alias==x)), 
-      #              otuSites2(posID=paste0(Chr,strand), value=Position, 
-      #                        readID=Sequence, grouping=Alias, parallel=F))
-      #       )
-      #       sites.all.otus <- do.call(rbind, sites.all.otus)
-      sites.all.otus <- with(droplevels(subset(allpatdata$sites.all,
-                                               !Alias %in% names(which(aliasCounts)))), 
-                             otuSites2(posID=paste0(Chr,strand), value=Position, 
-                                       readID=Sequence, grouping=Alias))    
-    } else {
-      sites.all.otus <- with(allpatdata$sites.all, 
-                             otuSites2(posID=paste0(Chr,strand), value=Position, 
-                                       readID=Sequence, grouping=Alias))
-    }
-    stopCluster(cl)
-    
-    allpatdata$sites.all <- merge(arrange(allpatdata$sites.all, Sequence), 
-                                  arrange(unique(sites.all.otus[,c("readID","otuID")]),
-                                          readID), 
-                                  by.x="Sequence", by.y="readID")
-    rm(sites.all.otus)
-    
-    # need to remove this since an OTU should uniquely define a row!
-    #allpatdata$sites.all$Sequence <- NULL     
-    #allpatdata$sites.all <- unique(allpatdata$sites.all)
-    
-    # remove multihit indicator for sites that merged with singleton!
-    bore <- subset(melt(with(allpatdata$sites.all, 
-                             tapply(isMultiHit, list(Alias,otuID), 
-                                    function(x) !any(!x)))),
-                   !is.na(value))
-    names(bore) <- c('Alias','otuID','isMultiHit2')
-    allpatdata$sites.all <- merge(allpatdata$sites.all,bore,all.x=T)
-    allpatdata$sites.all$AliasOTUid <- with(allpatdata$sites.all, paste0(Alias,otuID))
-    rm(bore)
-    
-    # trickle OTUs back to original multi and all sites frames for estAbund calcs #
-    if(!is.null(allpatdata$sites.multi)) {
-      allpatdata$sites.multi <- arrange(allpatdata$sites.multi, Alias, posID)
-      bore <- arrange(unique(allpatdata$sites.all[,c('Alias','posID','otuID')]), 
-                      Alias, posID)
-      
-      # lets make sure there is only one otuID for each posID per Alias
-      #test <- with(bore, tapply(otuID, paste0(Alias,posID), unique))
-      #stopifnot(!any(sapply(test,length)>1))
-      
-      allpatdata$sites.multi <- merge(allpatdata$sites.multi, bore, all.x=TRUE)      
-      allpatdata$sites.multi$AliasOTUid <- with(allpatdata$sites.multi, 
-                                                paste0(Alias,otuID))
-      rm(bore)
-    }
-    
-    allpatdata$sites <- 
-      merge(arrange(allpatdata$sites,Alias,posID),
-            arrange(unique(allpatdata$sites.all[,c('Alias','posID','otuID')]),
-                    Alias,posID), 
-            all.x=TRUE)
-    allpatdata$sites$AliasOTUid <- with(allpatdata$sites,paste0(Alias,otuID))
-    
-    # get clonecount proportions #
-    sec.num.messg <- sec.num.messg + 1
-    message(sec.num.messg,") Doing clonecount proportions & Ranks")
-    res <- with(allpatdata$sites.qc,
-                getPropsAndRanks(clonecount,Aliasposid,Alias,"cc"))
-    stopifnot(all(table(res$posID)==1))
-    rows <- match(allpatdata$sites.qc$Aliasposid, res$posID)
-    allpatdata$sites.qc$ccProp <- res$ccProp[rows]
-    allpatdata$sites.qc$ccPropRank <- res$ccPropRank[rows]
-    rm(rows)
-    
-   # get counts of unique primerid per sites #
-    sec.num.messg <- sec.num.messg + 1
-    message(sec.num.messg,") Doing primerid counts")
-    counts.primerid <- 
-      count(count(allpatdata$sites[!is.na(allpatdata$sites$primerid),], 
-                  c("Aliasposid","primerid"))[,-3],
-            "Aliasposid")
-    names(counts.primerid)[2] <- "primeridcounts"
-    allpatdata$sites.qc <- merge(allpatdata$sites.qc, counts.primerid, all.x=T)
-    allpatdata$sites.qc$primeridcounts[is.na(allpatdata$sites.qc$primeridcounts)] <- 0
-    rm(counts.primerid)
-    
+#     sec.num.messg <- sec.num.messg + 1
+#     message(sec.num.messg,") Making OTUs by Alias.")
+#     cl <- makeCluster(3)
+#     registerDoParallel(cl)
+#     
+#     # lets isolate really big Aliases since they can occupy crap load of memory #
+#     aliasCounts <- table(allpatdata$sites.all$Alias) > 200000
+#     if(any(aliasCounts)) {
+#       message("Skipping OTU step for: ",
+#               paste(names(which(aliasCounts)),collapse=","))
+#       #       sites.all.otus <- lapply(names(which(aliasCounts)), function(x)
+#       #         with(droplevels(subset(allpatdata$sites.all,Alias==x)), 
+#       #              otuSites2(posID=paste0(Chr,strand), value=Position, 
+#       #                        readID=Sequence, grouping=Alias, parallel=F))
+#       #       )
+#       #       sites.all.otus <- do.call(rbind, sites.all.otus)
+#       sites.all.otus <- with(droplevels(subset(allpatdata$sites.all,
+#                                                !Alias %in% names(which(aliasCounts)))), 
+#                              otuSites2(posID=paste0(Chr,strand), value=Position, 
+#                                        readID=Sequence, grouping=Alias))    
+#     } else {
+#       sites.all.otus <- with(allpatdata$sites.all, 
+#                              otuSites2(posID=paste0(Chr,strand), value=Position, 
+#                                        readID=Sequence, grouping=Alias))
+#     }
+#     stopCluster(cl)
+#     
+#     allpatdata$sites.all <- merge(arrange(allpatdata$sites.all, Sequence), 
+#                                   arrange(unique(sites.all.otus[,c("readID","otuID")]),
+#                                           readID), 
+#                                   by.x="Sequence", by.y="readID")
+#     rm(sites.all.otus)
+#     
+#     # need to remove this since an OTU should uniquely define a row!
+#     #allpatdata$sites.all$Sequence <- NULL     
+#     #allpatdata$sites.all <- unique(allpatdata$sites.all)
+#     
+#     # remove multihit indicator for sites that merged with singleton!
+#     bore <- subset(melt(with(allpatdata$sites.all, 
+#                              tapply(isMultiHit, list(Alias,otuID), 
+#                                     function(x) !any(!x)))),
+#                    !is.na(value))
+#     names(bore) <- c('Alias','otuID','isMultiHit2')
+#     allpatdata$sites.all <- merge(allpatdata$sites.all,bore,all.x=T)
+#     allpatdata$sites.all$AliasOTUid <- with(allpatdata$sites.all, paste0(Alias,otuID))
+#     rm(bore)
+#     
+#     # trickle OTUs back to original multi and all sites frames for estAbund calcs #
+#     if(!is.null(allpatdata$sites.multi)) {
+#       allpatdata$sites.multi <- arrange(allpatdata$sites.multi, Alias, posID)
+#       bore <- arrange(unique(allpatdata$sites.all[,c('Alias','posID','otuID')]), 
+#                       Alias, posID)
+#       
+#       # lets make sure there is only one otuID for each posID per Alias
+#       #test <- with(bore, tapply(otuID, paste0(Alias,posID), unique))
+#       #stopifnot(!any(sapply(test,length)>1))
+#       
+#       allpatdata$sites.multi <- merge(allpatdata$sites.multi, bore, all.x=TRUE)      
+#       allpatdata$sites.multi$AliasOTUid <- with(allpatdata$sites.multi, 
+#                                                 paste0(Alias,otuID))
+#       rm(bore)
+#     }
+#     
+#     allpatdata$sites <- 
+#       merge(arrange(allpatdata$sites,Alias,posID),
+#             arrange(unique(allpatdata$sites.all[,c('Alias','posID','otuID')]),
+#                     Alias,posID), 
+#             all.x=TRUE)
+#     allpatdata$sites$AliasOTUid <- with(allpatdata$sites,paste0(Alias,otuID))
+#         
     # get estimated abundance by break points per site #
     sec.num.messg <- sec.num.messg + 1
     message(sec.num.messg,") Doing SonicLength abundance")	
@@ -518,6 +415,9 @@ if(length(pats.to.do)>0) {
       allpatdata$sites.multi$estAbundance <- 0
     }
     
+  #talk to Eric when re-working sonic abundance code
+# it's better to sapply through a list of data frames rather than do a single call
+# to estAbund using Alias as sampleName
     dfr <- droplevels(unique(subset(allpatdata$sites,isqc98,
                                     select=c(Aliasposid,qEnd,Replicate,Alias), 
                                     drop=T)))
@@ -532,23 +432,23 @@ if(length(pats.to.do)>0) {
     cleanit <- gc()  
     
     # get estimated abundance by break points per multihit site/OTU #		
-    dfr <- droplevels(unique(
-      rbind(allpatdata$sites[,c("AliasOTUid","qEnd","Replicate","Alias")],
-            allpatdata$sites.multi[,c("AliasOTUid","qEnd","Replicate","Alias")])))
-    replicates <- if(length(unique(dfr$Replicate))>1) {dfr$Replicate} else {NULL}
-    siteAbund <- with(dfr, getEstAbund(posID=AliasOTUid, fragLen=qEnd, group=Alias, 
-                                       replicate=replicates, parallel=TRUE, 
-                                       clusterfragLen=FALSE))      
-    stopifnot(all(table(siteAbund$posID)==1))
-    rows <- match(allpatdata$sites.all$AliasOTUid, siteAbund$posID)
-    allpatdata$sites.all$estAbundance1 <- siteAbund$estAbund[rows]    
-    if(!is.null(allpatdata$sites.multi)) {
-      rows <- match(allpatdata$sites.multi$AliasOTUid, siteAbund$posID)
-      allpatdata$sites.multi$estAbundance <- siteAbund$estAbund[rows]
-    }
-    rm(rows)
-    cleanit <- gc()  
-    
+#     dfr <- droplevels(unique(
+#       rbind(allpatdata$sites[,c("AliasOTUid","qEnd","Replicate","Alias")],
+#             allpatdata$sites.multi[,c("AliasOTUid","qEnd","Replicate","Alias")])))
+#     replicates <- if(length(unique(dfr$Replicate))>1) {dfr$Replicate} else {NULL}
+#     siteAbund <- with(dfr, getEstAbund(posID=AliasOTUid, fragLen=qEnd, group=Alias, 
+#                                        replicate=replicates, parallel=TRUE, 
+#                                        clusterfragLen=FALSE))      
+#     stopifnot(all(table(siteAbund$posID)==1))
+#     rows <- match(allpatdata$sites.all$AliasOTUid, siteAbund$posID)
+#     allpatdata$sites.all$estAbundance1 <- siteAbund$estAbund[rows]    
+#     if(!is.null(allpatdata$sites.multi)) {
+#       rows <- match(allpatdata$sites.multi$AliasOTUid, siteAbund$posID)
+#       allpatdata$sites.multi$estAbundance <- siteAbund$estAbund[rows]
+#     }
+#     rm(rows)
+#     cleanit <- gc()  
+#     
     # get estAbundance1 proportions & ranks#
     # since estAbundance1 is same for a posID in different replicate..take unique! #
     res <- with(allpatdata$sites.qc, 
@@ -559,13 +459,13 @@ if(length(pats.to.do)>0) {
     allpatdata$sites.qc$estAbundance1PropRank <- res$estAbundance1PropRank[rows]
     
     # get estAbundance proportions for multihits #
-    if(!is.null(allpatdata$sites.multi)) {
-      res <- with(allpatdata$sites.multi, 
-                  getPropsAndRanks(estAbundance, AliasOTUid, Alias, "estAbundance"))
-      stopifnot(all(table(res$posID)==1))
-      rows <- match(allpatdata$sites.multi$AliasOTUid, res$posID)
-      allpatdata$sites.multi$estAbundanceProp <- res$estAbundanceProp[rows]
-    }
+#     if(!is.null(allpatdata$sites.multi)) {
+#       res <- with(allpatdata$sites.multi, 
+#                   getPropsAndRanks(estAbundance, AliasOTUid, Alias, "estAbundance"))
+#       stopifnot(all(table(res$posID)==1))
+#       rows <- match(allpatdata$sites.multi$AliasOTUid, res$posID)
+#       allpatdata$sites.multi$estAbundanceProp <- res$estAbundanceProp[rows]
+#     }
     
     # get estAbundance1 proportions for all sites: multi + unique #
     res <- with(allpatdata$sites.all, 
@@ -585,31 +485,19 @@ if(length(pats.to.do)>0) {
                        getRanks(estAbundance1, posID, Alias, 
                                 "estAbundance1Rank")),
                   by.x=c("posID","Alias"), by.y=c("posID","grouping"))
-        
-    test$clonecountRank <- NULL
-    test <- merge(test,
-                  with(test,getRanks(clonecount, posID, Alias,
-                                     "clonecountRank")),
-                  by.x=c("posID","Alias"), by.y=c("posID","grouping"))
-    
-    test$primerIDRank <- NULL
-    test <- merge(test,
-                  with(test,getRanks(primeridcounts, posID, Alias,
-                                     "primerIDRank")),
-                  by.x=c("posID","Alias"), by.y=c("posID","grouping"))
     
     allpatdata$sites.qc <- test
     rm(test)
     cleanit <- gc()
     
-    if(!is.null(allpatdata$sites.multi)) {
-      allpatdata$sites.multi$estAbundance1Rank <- NULL
-      allpatdata$sites.multi <- 
-        merge(allpatdata$sites.multi, 
-              with(unique(allpatdata$sites.multi[,c("estAbundance","otuID","Alias")]), 
-                   getRanks(estAbundance, otuID, Alias, "estAbundance1Rank")),
-              by.x=c("otuID","Alias"), by.y=c("posID","grouping"))
-    }
+#     if(!is.null(allpatdata$sites.multi)) {
+#       allpatdata$sites.multi$estAbundance1Rank <- NULL
+#       allpatdata$sites.multi <- 
+#         merge(allpatdata$sites.multi, 
+#               with(unique(allpatdata$sites.multi[,c("estAbundance","otuID","Alias")]), 
+#                    getRanks(estAbundance, otuID, Alias, "estAbundance1Rank")),
+#               by.x=c("otuID","Alias"), by.y=c("posID","grouping"))
+#     }
     
     allpatdata$sites.all$estAbundance1Rank <- NULL
     allpatdata$sites.all <- 
