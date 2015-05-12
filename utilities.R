@@ -34,3 +34,14 @@ generate_word_bubble <- function(gene_abundance, max_num_words=500) {
     
 }
 
+#' convert date format to number of days.
+#'
+#' the format is "[mdy]\d+\.\d*" for example: m10, y7, d3.5, m3., m3.0.
+#' @param vector of dates to convert
+#' @return vector of days
+mdy_to_day <- function(dates) {
+    rep(1.0, length(dates))
+}
+
+
+
