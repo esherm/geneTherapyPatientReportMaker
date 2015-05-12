@@ -3,6 +3,7 @@ library("RMySQL") #also loads DBI
 source("oldReports/helper_functions.R")
 source("../intSiteRetriever/intSiteRetriever.R")
 source("../genomicHeatmapMaker/CancerGeneList/onco_genes.R")
+source("utilities.R")
 
 #INPUTS: csv file/table GTSP to sampleName
 sampleName_GTSP = read.csv("sampleName_GTSP.csv")
@@ -18,7 +19,7 @@ dbDisconnect(GTSPDBconn)
 sets = merge(sets, sampleName_GTSP, by.x="SpecimenAccNum" , by.y="GTSP")
 refGenomes = getRefGenome(sampleName_GTSP$sampleName)
 sets = merge(sets, refGenomes)
-sets$timepointDay <- timepointDays(sets$timepoint)
+sets$timepointDay <- mdy_to_day(sets$timepoint)
 
 sites = getUniquePCRbreaks(sets$sampleName)
 
