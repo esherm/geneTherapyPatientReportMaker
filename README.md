@@ -25,3 +25,12 @@ intSiteRetriever : https://github.com/esherm/intSiteRetriever
 git clone https://github.com/esherm/intSiteRetriever
 ```)
 hiAnnotator
+
+# Testing
+
+Run in the R console:
+
+```bash
+library(testthat)
+test_dir(".")
+```
