@@ -1,3 +1,5 @@
+library(stringr)
+
 #' Create a word bubble for genes weighted by abundance.
 #' @param gene_abundance, a data frame of two cloumns
 #'        gene_name: name of the genes, chr
@@ -33,4 +35,54 @@ generate_word_bubble <- function(gene_abundance, max_num_words=500) {
                   colors=c(colSets("Set1")[-6],colSets("Paired")))
     
 }
+
+#' convert date format to number of days.
+#'
+#' the format is "^[mdy]\d+\.\d*$" for example: m10, y7, d3.5, m3., m3.0.
+#' @param vector of dates to convert
+#' @return vector of days
+mdy_to_day <- function(dates) {
+    stopifnot(check_date_format(dates))
+    mdy_letter <- get_mdy_letter(dates)
+    mdy_value <- get_mdy_value(dates)
+    letter_value <- data.frame(letter=mdy_letter, value=mdy_value)
+    convert_to_day(letter_value)
+}
+
+#' the format is "^[mdy]\d+\.?\d*$" 
+#' @return TRUE if format is correct else FALSE
+check_date_format <- function(dates) {
+    pattern <- "^[mdy]\\d+\\.?\\d*$"
+    all(str_detect(dates, pattern))
+}
+
+# only get m, d or y
+get_mdy_letter <- function(dates) {
+    date_letter <- "^[mdy]"
+    str_extract(dates, date_letter)
+}
+
+# only get number(ignore m, d, y)
+get_mdy_value <- function(dates) {
+    date_number <- "\\d+\\.?\\d*$" 
+    mdy_value <- str_extract(dates, date_number) 
+    as.numeric(as.character(mdy_value))
+}
+
+#' lookup table used in convert_to_day f
+mdy_to_day_lookup <- data.frame(
+    letter=c('d', 'm', 'y'),
+    days=c(1, 30.5, 366)
+)
+
+#' convert to days
+#' @param datafram with 2 cols: letter(d, m, y) and value(numeric).
+#' @return days
+convert_to_day <- function(letter_value) {
+    let_val_days <- merge(letter_value, mdy_to_day_lookup) # days here per unit
+    let_val_days$value * let_val_days$days  
+}
+
+
+
 
