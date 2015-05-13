@@ -1,6 +1,19 @@
 # geneTherapyPatientReportMaker
 For a specific patient, report integration near oncogenes and potentially expanded clones across cell types and multiple time points
 
+# Input
+
+Report is done for individual patient for multiple timepoints and cell types, each corresponding to unique
+GTSP. For each sample multiple preps can be used. 
+
+Sample name corresponds to name used in integration site calling DB.
+
+Format is (tab-separated):
+```{bash}
+GTSP    sampleName
+```
+
+
 # Database connfig file location
 
 config file should be in home directory and called .my.cnf,
