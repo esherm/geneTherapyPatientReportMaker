@@ -23,7 +23,10 @@ read_sites_counts <- merge(read_counts, sites_counts)
 read_sites_sample_GTSP <- merge(read_sites_counts, sampleName_GTSP)
 
 sets <- get_metadata_for_GTSP(unique(sampleName_GTSP$GTSP))
-stopifnot(length(unique(sets$Patient)) == 1) # reporst are for a single patient
+# reporst are for a single patient
+stopifnot(length(unique(sets$Patient)) == 1)
+# all GTSP in the database
+stopifnot(nrow(sets) == length(unique(sampleName_GTSP$GTSP)))
 
 sets <- merge(sets, read_sites_sample_GTSP)
 
