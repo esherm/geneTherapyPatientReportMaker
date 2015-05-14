@@ -1,5 +1,11 @@
 library(stringr)
 
+sanitize <- function(string) {
+  result <- gsub("&", "\\&", string, fixed = TRUE)
+  result <- gsub("_", "\\_", result, fixed = TRUE)
+  result
+}
+
 #' Create a word bubble for genes weighted by abundance.
 #' @param gene_abundance, a data frame of two cloumns
 #'        gene_name: name of the genes, chr
