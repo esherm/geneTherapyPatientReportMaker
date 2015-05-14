@@ -14,13 +14,7 @@ The attached report describes results of analysis of integration site distributi
 The samples studied in this report, the numbers of sequence reads, and unique integration sites available for this subject are shown below. 
 
 ```{r summaryTable,results="asis"}
-
-cols <- c("Trial", "GTSP", "Patient", "Timepoint", "CellType", 
-          "TotalReads", "UniqueSites", "FragMethod", "VCN")
-          
-summaryTable <- arrange(sets,timepointDay,CellType)                
-
-kable(summaryTable[,cols], caption="Sample Summary Table", row.names=FALSE, format="html", digits = 2)
+kable(summaryTable, caption="Sample Summary Table", row.names=FALSE, format="html", digits = 2)
 ```
 
 ## Population Size
