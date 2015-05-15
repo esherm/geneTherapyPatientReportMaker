@@ -11,33 +11,29 @@ source("estimatedAbundance.R")
 source("chao1Jackknife.R")
 source("dereplicateSites.R")
 source("standardizeSites.R")
+source("read_site_totals.R")
 
 #INPUTS: csv file/table GTSP to sampleName
 sampleName_GTSP <- read.csv("sampleName_GTSP.csv")
 GTSPs = unique(sampleName_GTSP$GTSP)
+
 stopifnot(all(setNameExists(sampleName_GTSP$sampleName)))
 
-read_counts <- getReadCounts(sampleName_GTSP$sampleName)
-names(read_counts) <- c("sampleName", "TotalReads")
-
-sites_counts <- getUniqueSiteCounts(sampleName_GTSP$sampleName)
-names(sites_counts) <- c("sampleName", "UniqueSites")
-
-read_sites_counts <- merge(read_counts, sites_counts)
-read_sites_sample_GTSP <- merge(read_sites_counts, sampleName_GTSP)
+read_sites_sample_GTSP <- get_read_site_totals(sampleName_GTSP)
 
 sets <- get_metadata_for_GTSP(unique(sampleName_GTSP$GTSP))
 # reports are for a single patient
 stopifnot(length(unique(sets$Patient)) == 1)
 # all GTSP in the database
 stopifnot(nrow(sets) == length(unique(sampleName_GTSP$GTSP)))
+#end INPUTS 
 
 sets <- merge(sets, read_sites_sample_GTSP)
 
-refGenomes <- getRefGenome(sampleName_GTSP$sampleName)
+refGenomes = getRefGenome(sampleName_GTSP$sampleName)
+# at present the whole report is done for one genome
 stopifnot(length(unique(refGenomes$refGenome))==1)
 
-sets <- merge(sets, refGenomes)
 sets$timepointDay <- mdy_to_day(sets$Timepoint)
 
 sites <- merge(getUniquePCRbreaks(sets$sampleName), sampleName_GTSP)
@@ -86,9 +82,10 @@ populationInfo = do.call(rbind, populationInfo)
 ### PRINT REPORT
 
 #set variables for markdown report
-patient <- sets$Patient[1]
-freeze <- sets$refGenome[1]
-timepoint <- sort(unique(sets$timepointDay))
+
+patient = sets$Patient[1]
+freeze = refGenomes[1, "refGenome"]
+timepoint = sort(unique(sets$timepointDay))
 
 cols <- c("Trial", "GTSP", "Patient", "Timepoint", "CellType", 
           "TotalReads", "UniqueSites", "FragMethod", "VCN")
@@ -104,6 +101,4 @@ knit("GTSPreport.Rmd", output=filename)
 markdownToHTML(filename, outFilename, extensions=c('tables'),
     options=c(markdownHTMLOptions(defaults=T),"toc"),
     stylesheet="GTSPreport.css") 
-
-
 
