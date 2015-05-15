@@ -13,6 +13,11 @@ Format is (tab-separated):
 GTSP    sampleName
 ```
 
+# Checked Assumptions
+* The patient report is done for a single patient.
+* All sites should be computed based on one reference genome.
+* All sample names and GTSPs should exist in intSite and specimen managemnet databases.
+
 
 # Database connfig file location
 
