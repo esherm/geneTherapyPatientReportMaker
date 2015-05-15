@@ -1,14 +1,19 @@
-dereplicateSites <- function(uniqueSites){
-  if(length(uniqueSites)>0){
-    sites.reduced <- reduce(flank(uniqueSites, -5, both=TRUE), with.revmap=T)
+dereplicateSites <- function(uniqueReads){
+    #do the dereplication, but loose the coordinates
+    sites.reduced <- reduce(flank(uniqueReads, -5, both=TRUE), with.revmap=T)
     sites.reduced$counts <- sapply(sites.reduced$revmap, length)
     
-    allSites <- uniqueSites[unlist(sites.reduced$revmap)]
-    allSites <- split(allSites, Rle(values=c(1:length(sites.reduced)), lengths=sites.reduced$counts))
-    allSites <- unlist(reduce(allSites, min.gapwidth=5))
-    mcols(allSites) <- mcols(sites.reduced)
-    allSites
-  }else{
-    uniqueSites
-  }
+    #order the unique sites as described by revmap
+    dereplicatedSites <- uniqueReads[unlist(sites.reduced$revmap)]
+    
+    #split the unique sites as described by revmap (sites.reduced$counts came from revmap above)
+    dereplicatedSites <- split(dereplicatedSites, Rle(values=seq(length(sites.reduced)), lengths=sites.reduced$counts))
+        
+    #do the standardization - this will pick a single starting position and
+    #choose the longest fragment as ending position
+    dereplicatedSites <- unlist(reduce(dereplicatedSites, min.gapwidth=5))
+    mcols(dereplicatedSites) <- mcols(sites.reduced)
+    
+    dereplicatedSites
 }
+
