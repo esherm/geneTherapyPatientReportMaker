@@ -29,23 +29,9 @@ The table below summarizes sample population for each timepoint & celltype combi
 ```{r ChaoGiniTable,results="asis"}
 # calculate unique integration sites per timepoint + celltype along with the gini index to be displayed on the barplots #
 # gini index should be calculated by amount of disproportionality in estAbundance1Prop #
-test2 <- unique(sites.qc[,c("Position", "Aliasposid", "estAbundance1Prop", "GTSP",
-                            "timepoint", "celltype", "patient")])
 
-sites.props <- ddply(test2, .(patient,timepoint,celltype,GTSP), 
-                     summarize, 
-                     UniqueSites=length(unique(Aliasposid)), 
-                     Gini=gini(estAbundance1Prop))
-sites.props$Gini <- round(sites.props$Gini,digits=2)
-
-summaryTable <- merge(summaryTable, sites.props)
-tps <- sortTimePoints(summaryTable$timepoint)
-summaryTable$timepoint <- factor(summaryTable$timepoint, levels=names(tps))
-summaryTable <- arrange(summaryTable, patient,timepoint,celltype)  
-
-kable(summaryTable[,setdiff(names(summaryTable),c('Trial','GTSP','TotalReads'))], 
-      caption="Sample Population Summary", format="html", digits = 2, 
-      row.names=FALSE)
+kable(popSummaryTable, caption="Sample Population Summary", format="html",
+      digits = 2, row.names=FALSE)
 ```
 
 The graph below visualizes population based summaries at a function of time.
