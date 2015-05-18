@@ -12,8 +12,10 @@ source("chao1Jackknife.R")
 source("dereplicateSites.R")
 source("standardizeSites.R")
 source("read_site_totals.R")
+source("populationInfo.R")
 
 #INPUTS: csv file/table GTSP to sampleName
+
 sampleName_GTSP <- read.csv("sampleName_GTSP.csv")
 GTSPs <- unique(sampleName_GTSP$GTSP)
 
@@ -26,6 +28,7 @@ sets <- get_metadata_for_GTSP(unique(sampleName_GTSP$GTSP))
 stopifnot(length(unique(sets$Patient)) == 1)
 # all GTSP in the database
 stopifnot(nrow(sets) == length(unique(sampleName_GTSP$GTSP)))
+
 #end INPUTS 
 
 sets <- merge(sets, read_sites_sample_GTSP)
@@ -36,7 +39,8 @@ stopifnot(length(unique(refGenomes$refGenome))==1)
 
 sets$timepointDay <- mdy_to_day(sets$Timepoint)
 
-sites <- merge(getUniquePCRbreaks(sets$sampleName), sampleName_GTSP)
+#==========GET AND PERFORM BASIC DEREPLICATION/SONICABUND ON SITES=============
+sites <- merge(getUniquePCRbreaks(sampleName_GTSP$sampleName), sampleName_GTSP)
 
 #we really don't care about seqinfo - we just want a GRange object for easy manipulation
 uniqueSites.gr <- GRanges(seqnames=Rle(sites$chr),
@@ -63,26 +67,36 @@ standardizedDereplicatedSites <- lapply(standardizedReplicatedSites, function(si
   res
 })
 
-populationInfo <- lapply(GTSPs, function(GTSP){
-  #can iterate through standardizedReplicatedSites and standardizedDereplicatedSites using GTSP#
-  replicatedSites <- standardizedReplicatedSites[[GTSP]]
-  dereplicatedSites <- standardizedDereplicatedSites[[GTSP]]
+standardizedReplicatedSites <- unname(unlist(GRangesList(standardizedReplicatedSites)))
+mcols(standardizedReplicatedSites) <- merge(as.data.frame(mcols(standardizedReplicatedSites)),
+                                           sets[,c("GTSP", "Timepoint",
+                                                   "CellType", "timepointDay")])
 
-  #in preperation for cast below, this needs to be a base R data.frame
-  merged <- as.data.frame(merge(mcols(replicatedSites[,c("posid", "replicate")]),
-                               mcols(dereplicatedSites[,c("posid", "estAbund")])))
+standardizedDereplicatedSites <- unname(unlist(GRangesList(standardizedDereplicatedSites)))
+mcols(standardizedDereplicatedSites) <- merge(as.data.frame(mcols(standardizedDereplicatedSites)),
+                                           sets[,c("GTSP", "Timepoint",
+                                                   "CellType", "timepointDay")])
 
-  replicatesByPosid <- acast(merged, formula=posid~replicate, fun.aggregate=sum, value.var="estAbund", fill=0)
+#============CALCULATE POPULATION SIZE/DIVERSITY INFORMATION=================
+#pull into function
+populationInfo <- getPopulationInfo(standardizedReplicatedSites,
+                                    standardizedDereplicatedSites,
+                                    "GTSP")
+populationInfo$Replicates <- sapply(split(standardizedReplicatedSites$replicate,
+                                          standardizedReplicatedSites$GTSP),
+                                    max)
 
-  data.frame("GTSP"=GTSP,
-             "S.chao1"=getPopEstimates(replicatesByPosid),
-             #"Gini"=round(gini(standardizedDereplicatedSites[[GTSP]]$estAbundProp), 2),
-             "Gini"=gini(standardizedDereplicatedSites[[GTSP]]$estAbundProp),
-             "Replicates"=max(replicatedSites$replicate))
-})
+#========CALCULATE POPULATION SIZE/DIVERSITY INFORMATION BY TIMEPOINT==========
+if(length(unique(sets$timepointDay))>1){
+  timepointPopulationInfo <- getPopulationInfo(standardizedReplicatedSites,
+                                               standardizedDereplicatedSites,
+                                               "Timepoint")
 
-populationInfo <- do.call(rbind, populationInfo)
-rownames(populationInfo) <- NULL
+  timepointPopulationInfo$UniqueSites <- sapply(split(standardizedDereplicatedSites,
+                                                      standardizedDereplicatedSites$Timepoint),
+                                                length)
+}
+
 
 #standardizedSites <- unname(unlist(GRangesList(standardizedSites)))
 
@@ -104,10 +118,13 @@ summaryTable <- arrange(sets,timepointDay,CellType)
 summaryTable <- summaryTable[,cols]
 
 cols <- c("Patient", "Timepoint", "CellType", "UniqueSites",
-          "Replicates", "FragMethod", "VCN", "S.chao1", "Gini")
+          "Replicates", "FragMethod", "VCN", "S.chao1", "Gini", "Shannon")
 popSummaryTable <- merge(sets,  populationInfo)
 popSummaryTable <- arrange(popSummaryTable,timepointDay,CellType)
 popSummaryTable <- popSummaryTable[,cols]
+
+timepointPopulationInfo <- melt(timepointPopulationInfo, "group")
+
 
 #end setting variables for markdown report
   

@@ -27,53 +27,14 @@ We also quantify population clone structure using Gini Coefficients. The Gini co
 The table below summarizes sample population for each timepoint & celltype combination. 
 
 ```{r ChaoGiniTable,results="asis"}
-# calculate unique integration sites per timepoint + celltype along with the gini index to be displayed on the barplots #
-# gini index should be calculated by amount of disproportionality in estAbundance1Prop #
-
 kable(popSummaryTable, caption="Sample Population Summary", format="html",
       digits = 2, row.names=FALSE)
 ```
 
-The graph below visualizes population based summaries at a function of time.
+The graph below visualizes population based summaries as a function of time.
 
 ```{r pop_graphs, fig.width=8, fig.height=6}
-## get new gini by timepoint only ##
-res <- unique(sites.qc[,c("posID", "timepoint", "estAbundance1")])
-pops <- ddply(res, .(timepoint), summarize,
-              UniqueSites=length(unique(posID)),
-              Gini=gini(getPropsAndRanks(estAbundance1, posID, "A", "")$Prop))
-
-## get Shannon diversity by timepoint only ##
-H <- diversity(acast(res, timepoint~posID, fill=0, value.var="estAbundance1", 
-                     fun.aggregate=sum))
-pops$Shannon <- H[pops$timepoint]
-
-## get new chao by timepoint only ##
-res <- unique(sites.qc[,c("posID", "timepoint", "Replicate", "estAbundance1")])
-res <- split(res, res$timepoint)
-H <- sapply(res, function(x) 
-  getPopEstimates(acast(x, formula=posID~Replicate, fun.aggregate=sum, 
-                        value.var="estAbundance1", fill=0)))
-names(H) <- names(res)
-pops$S.Chao <- H[pops$timepoint]
-rm(res)
-
-tps <- sortTimePoints(pops$timepoint)
-pops$timepoint <- factor(pops$timepoint, levels=names(tps))
-
-pU <- qplot(data=pops, timepoint, UniqueSites, geom="bar", stat='identity',
-            ylab="Unique Integration Sites")
-pG <- qplot(data=pops, timepoint, Gini, geom="bar", stat='identity',
-            ylab="Gini Index")
-pC <- qplot(data=pops, timepoint, S.Chao, geom="bar", stat='identity',
-            ylab="Estimated Population (S.Chao)")
-ymax <- max(pops$Shannon)+.5
-pS <- qplot(data=pops, timepoint, Shannon, geom="bar", stat='identity',
-            ylab="Shannon Index") +
-  scale_y_continuous(breaks=seq(0, ymax, by=2),limits=c(0, ymax))
-
-grid.arrange(pU, pG, pC, pS, ncol=2)
-
+ggplot(data=timepointPopulationInfo, aes(group, value)) + geom_bar(stat="identity") + facet_wrap(~variable, scales="free")
 ```
 
 ## Relative abundance of cell clones
