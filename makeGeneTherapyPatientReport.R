@@ -13,6 +13,7 @@ source("dereplicateSites.R")
 source("standardizeSites.R")
 source("read_site_totals.R")
 source("populationInfo.R")
+source("annotatedAbundanceSums.R")
 
 #INPUTS: csv file/table GTSP to sampleName
 
@@ -108,26 +109,18 @@ standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites
                                                    feature.colnam="name2")
 
 #used for calling sites as 'lowAbund'
-abundCutoff <- 0.01
+abundCutoff.barplots <- 0.03
 
-standardizedDereplicatedSites$maskedRefGeneName <- ifelse(standardizedDereplicatedSites$estAbundProp > abundCutoff,
-                                                          standardizedDereplicatedSites$nearest_refSeq_gene,
-                                                          "LowAbund")
+dereplicatedTimepointCellType <- split(standardizedDereplicatedSites, paste0(standardizedDereplicatedSites$Timepoint,
+                                                                             ":",
+                                                                             standardizedDereplicatedSites$CellType))
 
-annotatedAbundances <- split(standardizedDereplicatedSites, paste0(standardizedDereplicatedSites$Timepoint,
-                                                                   ":",
-                                                                   standardizedDereplicatedSites$CellType))
+barplotAbunds <- getAbundanceSums(dereplicatedTimepointCellType, abundCutoff.barplots)
 
-annotatedAbundances <- lapply(seq(length(annotatedAbundances)), function(x){
-  sites <- annotatedAbundances[[x]]
-  res <- aggregate(estAbundProp~maskedRefGeneName, mcols(sites), sum)
-  res$Timepoint <- strsplit(names(annotatedAbundances)[x], ":")[[1]][1]
-  res$CellType <- strsplit(names(annotatedAbundances)[x], ":")[[1]][2]
-  
-  res
-})
 
-annotatedAbundances = do.call(rbind, annotatedAbundances)
+#tweak abundCutoff
+
+detailedAbunds <- getAbundanceSums(dereplicatedTimepointCellType, abundCutoff.detailed)
 
 
 
