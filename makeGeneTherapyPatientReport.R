@@ -3,6 +3,7 @@ library("RMySQL") #also loads DBI
 library("markdown")
 library("knitr")
 library("hiAnnotator")
+library("ggplot2")
 
 source("intSiteRetriever/intSiteRetriever.R")
 source("CancerGeneList/onco_genes.R")
@@ -79,7 +80,6 @@ mcols(standardizedDereplicatedSites) <- merge(as.data.frame(mcols(standardizedDe
                                                    "CellType", "timepointDay")])
 
 #============CALCULATE POPULATION SIZE/DIVERSITY INFORMATION=================
-#pull into function
 populationInfo <- getPopulationInfo(standardizedReplicatedSites,
                                     standardizedDereplicatedSites,
                                     "GTSP")
@@ -119,6 +119,10 @@ barplotAbunds <- getAbundanceSums(dereplicatedTimepointCellType, abundCutoff.bar
 
 
 #tweak abundCutoff
+orderedAbundances <- standardizedDereplicatedSites[order(-standardizedDereplicatedSites$estAbundProp)]
+#'unique' functionally removes anything that's duplicated, thus preserving order
+abundCutoff.detailed <- orderedAbundances$nearest_refSeq_gene==unique(orderedAbundances$nearest_refSeq_gene)[50]
+abundCutoff.detailed <- orderedAbundances[which(abundCutoff.detailed)[1]]$estAbundProp
 
 detailedAbunds <- getAbundanceSums(dereplicatedTimepointCellType, abundCutoff.detailed)
 
@@ -156,7 +160,9 @@ timepointPopulationInfo <- melt(timepointPopulationInfo, "group")
 filename <- "report.md"
 outFilename <- gsub("\\.md",".html",filename)
 options(knitr.table.format='html')
-knit("GTSPreport.Rmd", output=filename)
+#knit("GTSPreport.Rmd", output=filename)
+theme_set(theme_bw()) #for ggplot2
+knit("shortGTSPReport.Rmd", output=filename)
 markdownToHTML(filename, outFilename, extensions=c('tables'),
     options=c(markdownHTMLOptions(defaults=T),"toc"),
     stylesheet="GTSPreport.css") 

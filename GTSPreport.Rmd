@@ -47,7 +47,7 @@ Integration sites were recovered using ligation mediated PCR after random fragme
 
 *Note*: In the barplots below any sites with Estimated Relative Abundance below `r percent(abundCutoff.barplots)` are binned as *LowAbund*. In cases where the legends are getting clipped for a certain celltype;  it is safe to assume that at a given timepoint numerous integration sites were equally abundant hence scoring the same rank.
 
-```{r barPlots, fig.height=9, fig.width=9}
+```{r barPlots, fig.height=12, fig.width=12}
 siteColors = structure(gg_color_hue(length(unique(barplotAbunds$maskedRefGeneName))), names=unique(barplotAbunds$maskedRefGeneName))
 siteColors["LowAbund"] <- "#E0E0E0"
 
@@ -60,48 +60,10 @@ ggplot(data=barplotAbunds, aes(Timepoint, estAbundProp, fill=maskedRefGeneName))
 Here is another way to perceive top ranking integration sites by genes within each celltype.
 
 ```{r sitetype_heatmap, fig.width=12, fig.height=11}
-sums$siteType2 <- sums$siteType
-counts <- sort(table(sums$siteType2))
-sums$siteType2 <- factor(sums$siteType2, levels=names(counts), ordered=TRUE)  
-if(length(levels(sums$siteType2))<50) {
-  sums <- aggregateSiteTypes(sites.qc, siteTypeVar="geneType")
-  abundCutoff2 <- abundCutoff - 0.01 
-  sums$siteType2 <- with(sums, ifelse(Props>=abundCutoff2, siteType, "LowAbund"))
-  sums$siteType2 <- with(sums, 
-                         ifelse(siteType %in% siteType2[siteType2!="LowAbund"],
-                                      siteType, siteType2))  
-  counts <- sort(table(sums$siteType2))
-  sums$siteType2 <- factor(sums$siteType2, levels=names(counts), ordered=TRUE)  
-  
-  while(length(levels(sums$siteType2))<50) {
-    abundCutoff2 <- abundCutoff2 - 0.01
-    sums$siteType2 <- with(sums, ifelse(Props>=abundCutoff2, siteType, "LowAbund"))
-    sums$siteType2 <- with(sums, 
-                           ifelse(siteType %in% siteType2[siteType2!="LowAbund"],
-                                        siteType, siteType2))  
-    counts <- sort(table(sums$siteType2))
-    sums$siteType2 <- factor(sums$siteType2, levels=names(counts), ordered=TRUE)  
-  }
- 
-  cat("Since using", percent(abundCutoff), "abundance cut off yeilds only small number of sites, we lower it down to", percent(abundCutoff2), "so it can capture a larger slice of the data.")
-  
-  sums <- ddply(.data=sums, .(Alias,siteType2), summarize, Props=sum(Props))  
-  sums$timepoint <- sub("(.+):(.+)","\\1",sums$Alias)
-  sums$celltype <- sub("(.+):(.+)","\\2",sums$Alias)
-}
-
-tps <- sortTimePoints(sums$timepoint)
-sums$timepoint <- factor(sums$timepoint, levels=names(tps))
-counts <- count(sums, c("timepoint","celltype"))
-sums$celltype <- factor(sums$celltype, levels=unique(counts$celltype))
-
-p <- qplot(data=sums, timepoint, siteType2, fill=Props, 
-           geom='tile', xlab="Timepoint", ylab="SiteType") +
-  scale_fill_continuous(name='Relative\nAbundance', labels=percent,
-                        low="#E5F5E0", high="#2B8CBE") + 
-  facet_grid(.~celltype, scales="free_x", space="free_x") +
+ggplot(data=detailedAbunds, aes(Timepoint, maskedRefGeneName, fill=estAbundProp)) + geom_tile() +
+  scale_fill_continuous(name='Relative\nAbundance', labels=percent, low="#E5F5E0", high="#2B8CBE") + 
+  facet_grid(.~CellType, scales="free", space="free") + labs(y="SiteType", x="Timepoint") +
   theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1))
-print(p)
 ```
 
 ## Longitudinal behavior of major clones
