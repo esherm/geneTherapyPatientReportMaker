@@ -45,60 +45,14 @@ Integration sites were recovered using ligation mediated PCR after random fragme
 
 *Note*: In the barplots below any sites with Estimated Relative Abundance below `r percent(abundCutoff)` are binned as *LowAbund*. In cases where the legends are getting clipped for a certain celltype;  it is safe to assume that at a given timepoint numerous integration sites were equally abundant hence scoring the same rank.
 
-```{r barPlots_prep}
-# generalize low abundant gene names #
-sites.qc$siteType <- with(sites.qc,
-                          ifelse(estAbundance1Prop>=abundCutoff,geneType, "LowAbund"))
+```{r barPlots, fig.height=9, fig.width=9}
+siteColors = structure(gg_color_hue(length(unique(annotatedAbundances$maskedRefGeneName))), names=unique(annotatedAbundances$maskedRefGeneName))
+siteColors["LowAbund"] <- "#E0E0E0"
 
-sums <- aggregateSiteTypes(sites.qc)
-sums$timepoint <- sub("(.+):(.+)","\\1",sums$Alias)
-sums$celltype <- sub("(.+):(.+)","\\2",sums$Alias)
-patternSearch <- "barPlots"
-```
-
-```{r barPlots, fig.height=5, fig.show='hide'}
-### Stacked Barplot: tp vs geneType ###
-for(cell in celltype) {
-  toplot <- droplevels(subset(sums,celltype==cell))
-  if(nrow(toplot)>0) {
-    # reorder siteType2 by their abundance #
-    toplot$siteType2 <- with(toplot,
-                             factor(siteType,
-                                    levels=unique(siteType[order(Ranks)]),
-                                    ordered=TRUE))            
-    toplot <- arrange(toplot, timepoint, Props)
-    
-    # reorder timepoints by days #
-    tps <- sortTimePoints(toplot$timepoint)
-    toplot$timepoint <- factor(toplot$timepoint, levels=names(tps))                                                                               
-    
-    # set custom color scale #
-    siteTypeCols <- structure(gg_color_hue(length(levels(toplot$siteType2))),
-                              names=levels(toplot$siteType2))
-    siteTypeCols["LowAbund"] <- "#E0E0E0"
-    
-    p <- ggplot(data=toplot, aes(timepoint, Props, fill=siteType2)) + 
-      geom_bar(stat="identity") + facet_wrap(~celltype,scales="free_x") + 
-      scale_y_continuous(labels=percent, expand=c(0,0)) + 
-      scale_fill_manual(name="SiteType", values=siteTypeCols) +
-      guides(fill=guide_legend(ncol=ifelse(length(siteTypeCols)>20,2,1))) +
-      labs(y="Estimated Relative Abundance by Pat-Tp-Cell", x="Timepoint") + 
-      theme(legend.title=element_blank(), 
-            axis.text.x=element_text(angle=45,hjust=1,vjust=1))
-    print(p)  
-  }
-}
-```
-```{r barPlots_Table, results='asis'}
-plotFiles <- list.files(path="figureByPatient", 
-                        pattern=paste0(patternSearch,".*.png"), full.names=TRUE)
-plotFiles <- paste0("<img src='",plotFiles,"' alt='barPlots'>")
-plotFiles <- matrix(plotFiles, ncol=2)
-dups <- names(which(table(plotFiles)>1))
-if(length(dups)>0) {
-  plotFiles[tail(which(plotFiles==dups),1)] <- ""
-}
-kable(plotFiles, row.names=FALSE,format="html")
+ggplot(data=annotatedAbundances, aes(Timepoint, estAbundProp, fill=maskedRefGeneName)) +
+  geom_bar(stat="identity") + facet_wrap(~CellType, scales="free") + scale_fill_manual(values=siteColors) +
+  labs(y="Relative Sonic Abundance", x="Timepoint") +
+  scale_y_continuous(labels=percent)
 ```
 
 Here is another way to perceive top ranking integration sites by genes within each celltype.

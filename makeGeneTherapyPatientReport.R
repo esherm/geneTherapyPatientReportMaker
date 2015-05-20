@@ -2,13 +2,13 @@
 library("RMySQL") #also loads DBI
 library("markdown")
 library("knitr")
+library("hiAnnotator")
 
 source("intSiteRetriever/intSiteRetriever.R")
 source("CancerGeneList/onco_genes.R")
 source("utilities.R")
 source("specimen_management.R")
 source("estimatedAbundance.R")
-source("chao1Jackknife.R")
 source("dereplicateSites.R")
 source("standardizeSites.R")
 source("read_site_totals.R")
@@ -87,30 +87,62 @@ populationInfo$Replicates <- sapply(split(standardizedReplicatedSites$replicate,
                                     max)
 
 #========CALCULATE POPULATION SIZE/DIVERSITY INFORMATION BY TIMEPOINT==========
-if(length(unique(sets$timepointDay))>1){
-  timepointPopulationInfo <- getPopulationInfo(standardizedReplicatedSites,
-                                               standardizedDereplicatedSites,
-                                               "Timepoint")
+timepointPopulationInfo <- getPopulationInfo(standardizedReplicatedSites,
+                                             standardizedDereplicatedSites,
+                                             "Timepoint")
 
-  timepointPopulationInfo$UniqueSites <- sapply(split(standardizedDereplicatedSites,
-                                                      standardizedDereplicatedSites$Timepoint),
-                                                length)
-}
+timepointPopulationInfo$UniqueSites <- sapply(split(standardizedDereplicatedSites,
+                                                    standardizedDereplicatedSites$Timepoint),
+                                              length)
 
 
-#standardizedSites <- unname(unlist(GRangesList(standardizedSites)))
+#==================ANNOTATE AND AGGREGATE ABUNDANCES=====================
+refSeq_genes <- makeGRanges(
+  getUCSCtable("refGene", "RefSeq Genes", freeze=reference_genome),
+  freeze=unique(refGenomes$refGenome) #there will only be one as enforced above
+)
+
+standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites,
+                                                   refSeq_genes,
+                                                   colnam="nearest_refSeq_gene",
+                                                   feature.colnam="name2")
+
+#used for calling sites as 'lowAbund'
+abundCutoff <- 0.01
+
+standardizedDereplicatedSites$maskedRefGeneName <- ifelse(standardizedDereplicatedSites$estAbundProp > abundCutoff,
+                                                          standardizedDereplicatedSites$nearest_refSeq_gene,
+                                                          "LowAbund")
+
+annotatedAbundances <- split(standardizedDereplicatedSites, paste0(standardizedDereplicatedSites$Timepoint,
+                                                                   ":",
+                                                                   standardizedDereplicatedSites$CellType))
+
+annotatedAbundances <- lapply(seq(length(annotatedAbundances)), function(x){
+  sites <- annotatedAbundances[[x]]
+  res <- aggregate(estAbundProp~maskedRefGeneName, mcols(sites), sum)
+  res$Timepoint <- strsplit(names(annotatedAbundances)[x], ":")[[1]][1]
+  res$CellType <- strsplit(names(annotatedAbundances)[x], ":")[[1]][2]
+  
+  res
+})
+
+annotatedAbundances = do.call(rbind, annotatedAbundances)
+
+
+
 
 ###GET MULTIHITS EVENTUALLY###
 
-# MAGIC HERE
-
-### PRINT REPORT
 
 #set variables for markdown report
 
 patient <- sets$Patient[1]
 freeze <- refGenomes[1, "refGenome"]
 timepoint <- sort(unique(sets$timepointDay))
+
+#used for calling sites as 'lowAbund'
+abundCutoff <- 0.03
 
 cols <- c("Trial", "GTSP", "Patient", "Timepoint", "CellType", 
           "TotalReads", "UniqueSites", "FragMethod", "VCN")
