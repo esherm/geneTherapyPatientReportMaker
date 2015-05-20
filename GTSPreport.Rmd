@@ -71,6 +71,7 @@ ggplot(data=detailedAbunds, aes(Timepoint, maskedRefGeneName, fill=estAbundProp)
 When multiple time points are available, it is of interest to track the behavior of the most abundant clones.  A plot of the relative abundances of major clones, based on output from SonicLength, is shown below. For cases where only a single time point is available, the data is just plotted as unlinked points. 
 
 ```{r ParallelLines, fig.width=10, fig.height=10}
+#Anatoly will work on this
 ### Parallel lines plot ###
 toplot <- unique(sites.qc[,c("posID","estAbundance1Prop","estAbundance1PropRank",
                              "siteType","geneType","timepoint","celltype",
@@ -98,7 +99,7 @@ if(nrow(toplot)>0) {
 }
 ```
 
-## Integration sites near LMO2
+## Integration sites near particular genes of interest
 
 Integration sites near the LMO2 gene are of special interest, because integration sites near these genes have now been associated with multiple adverse events after hematopoietic stem cell gene therapy. For this reason, we have cataloged all integration sites for which LMO2 is the nearest cancer-related gene over the specimens for all subjects. Results are summarized below.
 

@@ -14,7 +14,7 @@ source("dereplicateSites.R")
 source("standardizeSites.R")
 source("read_site_totals.R")
 source("populationInfo.R")
-source("annotatedAbundanceSums.R")
+source("abundanceFilteringUtils.R")
 
 #INPUTS: csv file/table GTSP to sampleName
 
@@ -97,7 +97,7 @@ timepointPopulationInfo$UniqueSites <- sapply(split(standardizedDereplicatedSite
                                               length)
 
 
-#==================ANNOTATE AND AGGREGATE ABUNDANCES=====================
+#=======================ANNOTATE DEREPLICATED SITES==========================
 refSeq_genes <- makeGRanges(
   getUCSCtable("refGene", "RefSeq Genes", freeze=reference_genome),
   freeze=unique(refGenomes$refGenome) #there will only be one as enforced above
@@ -108,38 +108,33 @@ standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites
                                                    colnam="nearest_refSeq_gene",
                                                    feature.colnam="name2")
 
-#used for calling sites as 'lowAbund'
-abundCutoff.barplots <- 0.03
+#===================GENERATE EXPANDED CLONE DATAFRAMES======================
+#barplots
+abundCutoff.barplots <- getAbundanceThreshold(standardizedDereplicatedSites, 10)
 
-dereplicatedTimepointCellType <- split(standardizedDereplicatedSites, paste0(standardizedDereplicatedSites$Timepoint,
-                                                                             ":",
-                                                                             standardizedDereplicatedSites$CellType))
+barplotAbunds <- getAbundanceSums(filterLowAbund(standardizedDereplicatedSites,
+                                                 abundCutoff.barplots),
+                                  c("CellType", "Timepoint"))
 
-barplotAbunds <- getAbundanceSums(dereplicatedTimepointCellType, abundCutoff.barplots)
+#detailed abundance plot
+abundCutoff.detailed <- getAbundanceThreshold(standardizedDereplicatedSites, 50)
+
+detailedAbunds <- getAbundanceSums(filterLowAbund(standardizedDereplicatedSites,
+                                                 abundCutoff.detailed),
+                                  c("CellType", "Timepoint"))
 
 
-#tweak abundCutoff
-orderedAbundances <- standardizedDereplicatedSites[order(-standardizedDereplicatedSites$estAbundProp)]
-#'unique' functionally removes anything that's duplicated, thus preserving order
-abundCutoff.detailed <- orderedAbundances$nearest_refSeq_gene==unique(orderedAbundances$nearest_refSeq_gene)[50]
-abundCutoff.detailed <- orderedAbundances[which(abundCutoff.detailed)[1]]$estAbundProp
-
-detailedAbunds <- getAbundanceSums(dereplicatedTimepointCellType, abundCutoff.detailed)
-
+#==================DETAILED REPORTS FOR BAD ACTORS=====================
 
 
 
 ###GET MULTIHITS EVENTUALLY###
 
 
-#set variables for markdown report
-
+#==================SET VARIABLES FOR MARKDOWN REPORT=====================
 patient <- sets$Patient[1]
 freeze <- refGenomes[1, "refGenome"]
 timepoint <- sort(unique(sets$timepointDay))
-
-#used for calling sites as 'lowAbund'
-abundCutoff <- 0.03
 
 cols <- c("Trial", "GTSP", "Patient", "Timepoint", "CellType", 
           "TotalReads", "UniqueSites", "FragMethod", "VCN")
@@ -154,9 +149,10 @@ popSummaryTable <- popSummaryTable[,cols]
 
 timepointPopulationInfo <- melt(timepointPopulationInfo, "group")
 
-
 #end setting variables for markdown report
-  
+
+#begin generating markdown
+
 filename <- "report.md"
 outFilename <- gsub("\\.md",".html",filename)
 options(knitr.table.format='html')
@@ -165,5 +161,5 @@ theme_set(theme_bw()) #for ggplot2
 knit("shortGTSPReport.Rmd", output=filename)
 markdownToHTML(filename, outFilename, extensions=c('tables'),
     options=c(markdownHTMLOptions(defaults=T),"toc"),
-    stylesheet="GTSPreport.css") 
+    stylesheet="GTSPreport.css")
 
