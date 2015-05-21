@@ -71,146 +71,51 @@ ggplot(data=detailedAbunds, aes(Timepoint, maskedRefGeneName, fill=estAbundProp)
 When multiple time points are available, it is of interest to track the behavior of the most abundant clones.  A plot of the relative abundances of major clones, based on output from SonicLength, is shown below. For cases where only a single time point is available, the data is just plotted as unlinked points. 
 
 ```{r ParallelLines, fig.width=10, fig.height=10}
-#Anatoly will work on this
+print("Anatoly will work on this")
 ### Parallel lines plot ###
-toplot <- unique(sites.qc[,c("posID","estAbundance1Prop","estAbundance1PropRank",
-                             "siteType","geneType","timepoint","celltype",
-                             "patient","Trial")])
-if(nrow(toplot)>0) {
-  tps <- sortTimePoints(toplot$timepoint)
-  toplot$timepoint <- factor(toplot$timepoint, levels=names(tps))
-  toplot$SiteRank <- factor(with(toplot,
-                                 ifelse(estAbundance1PropRank<4,
-                                        estAbundance1PropRank,">3")),
-                            levels=c(1:3,">3"))
-  
-  if(length(unique(toplot$celltype))>8) {
-    toplot$celltype <- abbreviate(toplot$celltype)
-  }
-  
-  print(ggplot(toplot,aes(x=timepoint, y=estAbundance1Prop)) + 
-          geom_point(size=.5) + 
-          geom_line(aes(colour=posID, group=posID), alpha=.5, show_guide=FALSE) + 
-          facet_wrap(~celltype, scales="free") + 
-          ggtitle(paste("Patient:",patient,Trial)) + xlab("Timepoint") + 
-          scale_y_continuous(name="Estimated Relative Abundance by Pat-Tp-Cell",
-                             labels=percent,expand=c(0,0)) +
-          theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1)))
-}
+# toplot <- unique(sites.qc[,c("posID","estAbundance1Prop","estAbundance1PropRank",
+#                              "siteType","geneType","timepoint","celltype",
+#                              "patient","Trial")])
+# if(nrow(toplot)>0) {
+#   tps <- sortTimePoints(toplot$timepoint)
+#   toplot$timepoint <- factor(toplot$timepoint, levels=names(tps))
+#   toplot$SiteRank <- factor(with(toplot,
+#                                  ifelse(estAbundance1PropRank<4,
+#                                         estAbundance1PropRank,">3")),
+#                             levels=c(1:3,">3"))
+#   
+#   if(length(unique(toplot$celltype))>8) {
+#     toplot$celltype <- abbreviate(toplot$celltype)
+#   }
+#   
+#   print(ggplot(toplot,aes(x=timepoint, y=estAbundance1Prop)) + 
+#           geom_point(size=.5) + 
+#           geom_line(aes(colour=posID, group=posID), alpha=.5, show_guide=FALSE) + 
+#           facet_wrap(~celltype, scales="free") + 
+#           ggtitle(paste("Patient:",patient,Trial)) + xlab("Timepoint") + 
+#           scale_y_continuous(name="Estimated Relative Abundance by Pat-Tp-Cell",
+#                              labels=percent,expand=c(0,0)) +
+#           theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1)))
+# }
 ```
 
 ## Integration sites near particular genes of interest
 
-Integration sites near the LMO2 gene are of special interest, because integration sites near these genes have now been associated with multiple adverse events after hematopoietic stem cell gene therapy. For this reason, we have cataloged all integration sites for which LMO2 is the nearest cancer-related gene over the specimens for all subjects. Results are summarized below.
+Integration sites near genes that have been associated with adverse events are of particular interest. Thus, we have cataloged all integration sites for which a gene of interest is the nearest cancer-related gene.
+Results are summarized below as a scatter plot where the y-axis shows relative abundance of sites and x-axis is distance to the nearest onconogene 5' end. **NEED TO FIGURE OUT WHAT +/- MEAN**
 
-Below is a table of sites for which LMO2 is the closest proto-onconogene. Note that many might be far from the integration site (DistTo5p column). Column headings are defined below. The table is also shown as a scatter plot where the y-axis shows abundance of sites and x-axis is distance to the nearest proto-onconogene 5' end. 
-```{r LMO2}
-geneOfInterest <- "LMO2"
-printIt <- TRUE
+```{r bad_actors, eval=TRUE}
+#a bit hackey but it works
+badActorOut <- lapply(badActors, function(badActor){
+  sites <- as.data.frame(badActorData[[badActor]])
+  if(nrow(sites)>1){
+    knit_child("badActorPartial.Rmd", quiet=T, envir=environment())
+    }else{
+      knit_expand(text=paste0("### ", badActor, "\n **No sites within 100kb of any ", badActor," TSS for this patient.**\n***"))
+    }
+  })
 ```
-
-```{r geneOfInterest, results="asis", fig.width=10, fig.height=7}
-### geneOfInterest sites ###
-rows <- with(sites.qc, grepl(geneOfInterest,nrstOncoGeneName) | 
-               grepl(geneOfInterest,nrst5pOncoGeneName))
-
-if(any(rows)) {
-  ### geneOfInterest barplot ###                         
-  toplot <- sites.qc[rows,c("timepoint","nrst5pOncoGeneDist",
-                            "celltype","estAbundance1Prop")]
-  tps <- sortTimePoints(toplot$timepoint)
-  toplot$timepoint <- factor(toplot$timepoint, levels=names(tps))
-  print(qplot(data=toplot, x=nrst5pOncoGeneDist, y=estAbundance1Prop, 
-              colour=timepoint, geom="point", size=3, alpha=.95) + 
-          scale_x_continuous(name=paste("Distance to",geneOfInterest,"5' end (bp)"),
-                             labels=comma) + 
-          scale_y_continuous(name="Estimated Relative Abundance by Pat-Tp-Cell",
-                             labels=percent, limits=c(0,1)) +
-          facet_wrap(~celltype) + guides(alpha=FALSE, size=FALSE) +
-          theme(axis.text.x=element_text(angle=45,hjust=1)))
-
-  ### geneOfInterest sites table description ###                         
-  if(printIt) {
-    res <- c("Trial"="Shorthand name for clinical trial", 
-             "Pat"="Patient ID", 
-             "Tp"="Time point", 
-             "Cell"="Cell type", 
-             "posID"="Chromosomal location of the integration site; first chromosome number, then coordinate. The + or - indications orientation of the integrated provirus",
-             "DistTo5p"=paste("Distance to the DNA encoding 5 prime end of the",geneOfInterest,"transcript, in base pairs"), 
-             "BreakSites"="Estimated abundance from number of independent linker addition sites (higher numbers indicate more abundant)", 
-             "SiteRank"="Ranking of sites by abundance (1 indicates highest abundance)", 
-             "SiteType"=paste("Nearest gene to integration site. For sites distant from",geneOfInterest,", this may not be",geneOfInterest,"itself."))
-    
-    kable(as.matrix(res), format="html", row.names=TRUE, 
-          caption="Column descriptions")
-  }
-  
-  ### geneOfInterest sites table ###   
-  tableOfSites <- unique(sites.qc[rows,c("patient", "timepoint", "geneType",
-                                         "celltype", "posID" ,"nrst5pOncoGeneDist", 
-                                         "estAbundance1", "estAbundance1Rank")])
-  tableOfSites <- arrange(tableOfSites, patient,timepoint,celltype,
-                          abs(nrst5pOncoGeneDist), posID)
-  names(tableOfSites) <- col.keys[names(tableOfSites)]
-  
-  ## curate timepoint ordering! ##
-  tps <- sortTimePoints(tableOfSites$Tp)
-  tableOfSites$Tp <- factor(tableOfSites$Tp, levels=names(tps))
-  tableOfSites <- tableOfSites[order(tableOfSites$Tp),]
-  
-  tabcap <- paste(geneOfInterest,"sites")
-  kable(tableOfSites, caption=tabcap, format="html", row.names=FALSE)       
-} else {
-  cat(paste("<strong>No",geneOfInterest,"sites found for in this patient.</strong>"))
-}
-```
-
-## Integration sites near IKZF1
-
-Due to recently developed interests, we extend the LMO2 analysis shown in previous section to include IKZF1. Results are summarized below.
-
-```{r}
-geneOfInterest <- "IKZF1"
-printIt <- FALSE
-```
-
-```{r IKZF1, ref.label='geneOfInterest', results="asis", fig.width=10, fig.height=7}
-```
-
-## Integration sites near CCND2
-  
-We also wanted to investigate whether any sites where near CCND2 gene which has been a bad actor previously. Here are the results.
-  
-```{r}
-geneOfInterest <- "CCND2"
-printIt <- FALSE
-```
-
-```{r CCND2, ref.label='geneOfInterest', results="asis", fig.width=10, fig.height=7}
-```
-
- 
-## Integration sites near HMGA2
-
-We also wanted to investigate whether any sites where near HMGA2 gene which has been a bad actor previously. Here are the results.
-
-```{r}
-geneOfInterest <- "HMGA2"
-printIt <- FALSE
-```
-
-```{r HMGA2, ref.label='geneOfInterest', results="asis", fig.width=10, fig.height=7}
-```
-
-## Integration sites near MECOM/EVI1
-
-```{r}
-geneOfInterest <- "MECOM|EVI1"
-printIt <- FALSE
-```
-
-```{r MECOM, ref.label='geneOfInterest', results="asis", fig.width=10, fig.height=7}
-```
+`r knit(text = unlist(badActorOut))`
 
 ## Do any clones account for greater than 20% of the total?
   
@@ -218,6 +123,7 @@ For some trials, a reporting criteria is whether any cell clones expand to accou
 
 ```{r TwentyPercSites, results="asis"}
 ### Sites >20% of data by Alias ###
+knit_exit()
 rows <- sites.qc$estAbundance1Prop >= .2
 
 if(any(rows)) {
