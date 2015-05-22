@@ -98,3 +98,13 @@ gg_color_hue <- function(n) {
   hues = seq(15, 375, length=n+1)
   hcl(h=hues, l=65, c=100)[1:n]
 }
+
+sortFactorTimepoints <- function(timepoints){
+  tps <- mdy_to_day(timepoints)
+  names(tps) <- timepoints
+  factor(timepoints, levels=unique(names(sort(tps))))
+}
+
+as.sortedFactor <- function(unsortedFactor){
+  factor(unsortedFactor, sort(unsortedFactor))
+}

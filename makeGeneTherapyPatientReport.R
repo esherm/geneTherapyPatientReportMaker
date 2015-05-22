@@ -74,13 +74,13 @@ standardizedDereplicatedSites <- lapply(standardizedReplicatedSites, function(si
 
 standardizedReplicatedSites <- unname(unlist(GRangesList(standardizedReplicatedSites)))
 mcols(standardizedReplicatedSites) <- merge(as.data.frame(mcols(standardizedReplicatedSites)),
-                                           sets[,c("GTSP", "Timepoint",
-                                                   "CellType", "timepointDay")])
+                                           sets[,c("GTSP", "Timepoint", "CellType", "timepointDay")])
+standardizedReplicatedSites$Timepoint <- sortFactorTimepoints(standardizedReplicatedSites$Timepoint)
 
 standardizedDereplicatedSites <- unname(unlist(GRangesList(standardizedDereplicatedSites)))
 mcols(standardizedDereplicatedSites) <- merge(as.data.frame(mcols(standardizedDereplicatedSites)),
-                                           sets[,c("GTSP", "Timepoint",
-                                                   "CellType", "timepointDay")])
+                                           sets[,c("GTSP", "Timepoint", "CellType", "timepointDay")])
+standardizedDereplicatedSites$Timepoint <- sortFactorTimepoints(standardizedDereplicatedSites$Timepoint)
 
 #============CALCULATE POPULATION SIZE/DIVERSITY INFORMATION=================
 populationInfo <- getPopulationInfo(standardizedReplicatedSites,
@@ -139,7 +139,6 @@ abundCutoff.detailed <- getAbundanceThreshold(standardizedDereplicatedSites, 50)
 detailedAbunds <- getAbundanceSums(filterLowAbund(standardizedDereplicatedSites,
                                                  abundCutoff.detailed),
                                   c("CellType", "Timepoint"))
-
 
 #==================DETAILED REPORTS FOR BAD ACTORS=====================
 badActors <- c("LMO2", "IKZF1", "CCND2", "HMGA2", "MECOM")
