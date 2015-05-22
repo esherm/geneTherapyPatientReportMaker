@@ -4,6 +4,7 @@ library("markdown")
 library("knitr")
 library("hiAnnotator")
 library("ggplot2")
+library(reldist)
 
 source("intSiteRetriever/intSiteRetriever.R")
 source("CancerGeneList/onco_genes.R")
@@ -28,6 +29,8 @@ read_sites_sample_GTSP <- get_read_site_totals(sampleName_GTSP)
 sets <- get_metadata_for_GTSP(unique(sampleName_GTSP$GTSP))
 # reports are for a single patient
 stopifnot(length(unique(sets$Patient)) == 1)
+patient <- sets$Patient[1]
+
 # all GTSP in the database
 stopifnot(nrow(sets) == length(unique(sampleName_GTSP$GTSP)))
 
@@ -38,6 +41,7 @@ sets <- merge(sets, read_sites_sample_GTSP)
 refGenomes <- getRefGenome(sampleName_GTSP$sampleName)
 # at present the whole report is done for one genome
 stopifnot(length(unique(refGenomes$refGenome))==1)
+freeze <- refGenomes[1, "refGenome"]
 
 sets$timepointDay <- mdy_to_day(sets$Timepoint)
 
@@ -99,8 +103,8 @@ timepointPopulationInfo$UniqueSites <- sapply(split(standardizedDereplicatedSite
 
 #=======================ANNOTATE DEREPLICATED SITES==========================
 refSeq_genes <- makeGRanges(
-  getUCSCtable("refGene", "RefSeq Genes", freeze=reference_genome),
-  freeze=unique(refGenomes$refGenome) #there will only be one as enforced above
+  getUCSCtable("refGene", "RefSeq Genes", freeze=freeze),
+  freeze=freeze
 )
 
 standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites,
@@ -132,8 +136,6 @@ detailedAbunds <- getAbundanceSums(filterLowAbund(standardizedDereplicatedSites,
 
 
 #==================SET VARIABLES FOR MARKDOWN REPORT=====================
-patient <- sets$Patient[1]
-freeze <- refGenomes[1, "refGenome"]
 timepoint <- sort(unique(sets$timepointDay))
 
 cols <- c("Trial", "GTSP", "Patient", "Timepoint", "CellType", 
