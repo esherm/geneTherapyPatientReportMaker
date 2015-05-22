@@ -5,6 +5,9 @@ library("knitr")
 library("hiAnnotator")
 library("ggplot2")
 library(reldist)
+library("sonicLength")
+library("reshape2")
+library("scales")
 
 source("intSiteRetriever/intSiteRetriever.R")
 source("CancerGeneList/onco_genes.R")
@@ -75,13 +78,13 @@ standardizedDereplicatedSites <- lapply(standardizedReplicatedSites, function(si
 
 standardizedReplicatedSites <- unname(unlist(GRangesList(standardizedReplicatedSites)))
 mcols(standardizedReplicatedSites) <- merge(as.data.frame(mcols(standardizedReplicatedSites)),
-                                           sets[,c("GTSP", "Timepoint",
-                                                   "CellType", "timepointDay")])
+                                           sets[,c("GTSP", "Timepoint", "CellType", "timepointDay")])
+standardizedReplicatedSites$Timepoint <- sortFactorTimepoints(standardizedReplicatedSites$Timepoint)
 
 standardizedDereplicatedSites <- unname(unlist(GRangesList(standardizedDereplicatedSites)))
 mcols(standardizedDereplicatedSites) <- merge(as.data.frame(mcols(standardizedDereplicatedSites)),
-                                           sets[,c("GTSP", "Timepoint",
-                                                   "CellType", "timepointDay")])
+                                           sets[,c("GTSP", "Timepoint", "CellType", "timepointDay")])
+standardizedDereplicatedSites$Timepoint <- sortFactorTimepoints(standardizedDereplicatedSites$Timepoint)
 
 #============CALCULATE POPULATION SIZE/DIVERSITY INFORMATION=================
 populationInfo <- getPopulationInfo(standardizedReplicatedSites,
@@ -102,6 +105,7 @@ timepointPopulationInfo$UniqueSites <- sapply(split(standardizedDereplicatedSite
 
 
 #=======================ANNOTATE DEREPLICATED SITES==========================
+#standard refSeq genes
 refSeq_genes <- makeGRanges(
   getUCSCtable("refGene", "RefSeq Genes", freeze=freeze),
   freeze=freeze
@@ -111,6 +115,19 @@ standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites
                                                    refSeq_genes,
                                                    colnam="nearest_refSeq_gene",
                                                    feature.colnam="name2")
+
+#oncogenes
+oncogene_file <- "CancerGeneList/allonco_no_pipes.csv"
+oncogenes <- get_oncogene_from_file(oncogene_file)
+
+refSeq_oncogene <- refSeq_genes[is_onco_gene(refSeq_genes$name2, oncogenes)]
+
+standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites,
+                                                   refSeq_oncogene,
+                                                   colnam="NrstOnco",
+                                                   side="5p",
+                                                   feature.colnam="name2")
+
 
 #===================GENERATE EXPANDED CLONE DATAFRAMES======================
 #barplots
@@ -127,12 +144,14 @@ detailedAbunds <- getAbundanceSums(filterLowAbund(standardizedDereplicatedSites,
                                                  abundCutoff.detailed),
                                   c("CellType", "Timepoint"))
 
-
 #==================DETAILED REPORTS FOR BAD ACTORS=====================
+badActors <- c("LMO2", "IKZF1", "CCND2", "HMGA2", "MECOM")
 
-
-
-###GET MULTIHITS EVENTUALLY###
+badActorData <- sapply(badActors, function(badActor){
+  hasBadActor <- grepl(badActor, standardizedDereplicatedSites$X5pNrstOnco)
+  badActorWithin100K <- abs(standardizedDereplicatedSites$X5pNrstOncoDist) <= 100000
+  standardizedDereplicatedSites[hasBadActor & badActorWithin100K]
+})
 
 
 #==================SET VARIABLES FOR MARKDOWN REPORT=====================
@@ -160,7 +179,7 @@ outFilename <- gsub("\\.md",".html",filename)
 options(knitr.table.format='html')
 #knit("GTSPreport.Rmd", output=filename)
 theme_set(theme_bw()) #for ggplot2
-knit("shortGTSPReport.Rmd", output=filename)
+knit("GTSPreport.Rmd", output=filename)
 markdownToHTML(filename, outFilename, extensions=c('tables'),
     options=c(markdownHTMLOptions(defaults=T),"toc"),
     stylesheet="GTSPreport.css")

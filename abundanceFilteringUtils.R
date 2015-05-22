@@ -14,8 +14,8 @@ filterLowAbund <- function(sites, abundCutoff){
 }
 
 getAbundanceSums <- function(sites, splitBy){
-  splitBy = mcols(sites)[,splitBy]
-  splitSites = split(sites, apply(as.data.frame(splitBy), 1, paste, collapse=""))
+  splitBy <- mcols(sites)[,splitBy]
+  splitSites <- split(sites, apply(as.data.frame(splitBy), 1, paste, collapse=""))
   
   do.call(rbind, lapply(splitSites, function(sites){
     res <- aggregate(estAbundProp~maskedRefGeneName, mcols(sites), sum)

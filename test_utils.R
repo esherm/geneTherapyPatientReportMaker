@@ -51,3 +51,9 @@ test_that("can process mix of mdy", {
     res <- c(res, ave_year * c(1, 10, 100))
     expect_equal(mdy_to_day(dates), res)
 })
+
+test_that("can process input where mdy is not ordered as 'dmy'",{
+  dates <- c("y1", "m4", "d10", "m3", "y2", "d99")
+  res <- c(ave_year, 4*ave_month, 10.0, 3*ave_month, 2*ave_year, 99.0)
+  expect_equal(mdy_to_day(dates), res)
+})

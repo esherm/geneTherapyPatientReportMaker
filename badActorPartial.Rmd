@@ -1,0 +1,14 @@
+### `r badActor`
+```{r}
+ggplot(data=sites, aes(x=X5pNrstOncoDist, y=estAbundProp, color=Timepoint)) +
+  geom_point(size=3, alpha=.95) +
+  scale_x_continuous(name=paste("Distance to",badActor,"5' end (bp)"), labels=comma, limits=c(-100000,100000)) +
+  scale_y_continuous(name="Relative Sonic Abundance", labels=percent, limits=c(0,1)) +
+  facet_wrap(~CellType) + theme(axis.text.x=element_text(angle=45,hjust=1)) + guides(alpha=FALSE, size=FALSE)
+
+sites <- sites[,c("Timepoint", "CellType", "posid", "X5pNrstOnco", "X5pNrstOncoDist", "estAbund", "estAbundRank")]
+names(sites) <- c("Timepoint", "CellType", "posID", "nearestOnco", "distToNearestOnco", "sonicAbundance", "sonicAbundanceRank")
+
+kable(sites, caption=paste0(badActor," sites"), format="html", row.names=FALSE)
+```
+***
