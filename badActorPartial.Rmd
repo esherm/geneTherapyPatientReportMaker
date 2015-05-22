@@ -7,7 +7,7 @@ ggplot(data=sites, aes(x=X5pNrstOncoDist, y=estAbundProp, color=Timepoint)) +
   facet_wrap(~CellType) + theme(axis.text.x=element_text(angle=45,hjust=1)) + guides(alpha=FALSE, size=FALSE)
 
 sites <- sites[,c("Timepoint", "CellType", "posid", "X5pNrstOnco", "X5pNrstOncoDist", "estAbund", "estAbundRank")]
-names(sites) <- c("Timepoint", "CellType", "posID", "nearestOnco", "distToNearestOnco", "sonicAbundance", "sonicAbundanceRank")
+names(sites) <- c("Timepoint", "CellType", "Integration Site", "nearestOnco", "distToNearestOnco", "sonicAbundance", "sonicAbundanceRank")
 
 kable(sites, caption=paste0(badActor," sites"), format="html", row.names=FALSE)
 ```

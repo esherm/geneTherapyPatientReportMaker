@@ -3,7 +3,7 @@
 
 ```{r setup,echo=FALSE}
 opts_chunk$set(fig.path='figureByPatient/', fig.align='left', comment="",
-               echo=FALSE, warning=FALSE, error=TRUE, message=FALSE)
+               echo=FALSE, warning=FALSE, error=TRUE, message=FALSE, cache=F, results="asis")
 options(knitr.table.format = 'html')
 ```
 
@@ -33,10 +33,10 @@ kable(popSummaryTable, caption="Sample Population Summary", format="html",
 
 The graph below visualizes population based summaries as a function of time.
 
-```{r pop_graphs, fig.width=8, fig.height=6}
+```{r pop_graphs, results='asis', fig.width=8, fig.height=6}
 if(length(unique(timepointPopulationInfo$group)) >1 ){
   ggplot(data=timepointPopulationInfo, aes(group, value)) + geom_bar(stat="identity") + facet_wrap(~variable, scales="free")
-}else{cat(paste0("Only one timepoint, ", unique(timepointPopulationInfo$group), ", present.  Insufficient data available to plot population estimators across timepoints."))}
+}else{cat("**Only one timepoint, ", unique(timepointPopulationInfo$group), ", present.  Insufficient data available to plot population estimators across timepoints.**")}
 ```
 
 ## Relative abundance of cell clones
@@ -72,18 +72,15 @@ When multiple time points are available, it is of interest to track the behavior
 
 ```{r ParallelLines, fig.width=10, fig.height=10}
 if (has_longitudinal_data) {
-    print(
-        ggplot(longitudinal, aes(x=Timepoint, y=estAbundProp)) + 
-        geom_point(size=.5) + 
-        #geom_line(aes(colour=posID, group=posID), alpha=.5, show_guide=FALSE) + 
-        geom_line(alpha=.5, show_guide=FALSE) + 
-        facet_wrap(~CellType, scales="free") + 
-        ggtitle(paste("Patient:", patient, "Trial:", trial)) + xlab("Timepoint") + 
-        scale_y_continuous(name="Estimated Relative Abundance by Pat-Tp-Cell",
-              labels=percent,expand=c(0,0)) +
-        theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1))
-    )
-}
+  ggplot(longitudinal, aes(x=Timepoint, y=estAbundProp)) +
+    geom_point(size=.5) +
+    geom_line(aes(colour=posid, group=posid), alpha=.5, show_guide=FALSE) +
+    facet_wrap(~CellType, scales="free") +
+    ggtitle(paste("Patient:", patient, "Trial:", trial)) + xlab("Timepoint") + 
+    scale_y_continuous(name="Relative Sonic Abundance",
+                       labels=percent,expand=c(0,0)) +
+    theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1))
+  }else{cat("**Only one timepoint, ", unique(timepointPopulationInfo$group), ", present.  Insufficient data available to plot changes of clone densities across timepoints.**")}
 ```
 
 ## Integration sites near particular genes of interest
@@ -91,8 +88,12 @@ if (has_longitudinal_data) {
 Integration sites near genes that have been associated with adverse events are of particular interest. Thus, we have cataloged all integration sites for which a gene of interest is the nearest cancer-related gene.
 Results are summarized below as a scatter plot where the y-axis shows relative abundance of sites and x-axis is distance to the nearest onconogene 5' end. **NEED TO FIGURE OUT WHAT +/- MEAN**
 
-```{r bad_actors, eval=TRUE}
+
+```{r badActors, include=FALSE}
+#this chunk has to have include=FALSE otherwise it inexplicably displays a verbatim
+#copy of the longitudinal data graph... I have absolutely no idea why...
 #a bit hackey but it works
+badActorOut <- NULL #clear it out
 badActorOut <- lapply(badActors, function(badActor){
   sites <- as.data.frame(badActorData[[badActor]])
   if(nrow(sites)>1){

@@ -4,7 +4,7 @@ library("markdown")
 library("knitr")
 library("hiAnnotator")
 library("ggplot2")
-library(reldist)
+library("reldist")
 library("sonicLength")
 library("reshape2")
 library("scales")
@@ -59,15 +59,19 @@ uniqueSites.gr <- GRanges(seqnames=Rle(sites$chr),
                           ranges=IRanges(start=pmin(sites$integration, sites$breakpoint),
                                          end=pmax(sites$integration, sites$breakpoint)),
                           strand=Rle(sites$strand))
-mcols(uniqueSites.gr) <- sites[,c("sampleName", "GTSP")]
+mcols() <- sites[,c("sampleName", "GTSP")]
 
-#standardize sites across GTSP
-standardizedReplicatedSites <- lapply(split(uniqueSites.gr, uniqueSites.gr$GTSP), function(sites){
-  res <- standardizeSites(sites)
-  res$replicate <- as.integer(as.factor(res$sampleName))
-  res$sampleName <- NULL
-  res$posid <- paste0(seqnames(res), strand(res), start(flank(res, -1, start=T)))
-  res
+#standardize sites across all GTSPs
+standardizedReplicatedSites <- standardizeSites(uniqueSites.gr)
+standardizedReplicatedSites$posid <- paste0(seqnames(standardizedReplicatedSites),
+                                            strand(standardizedReplicatedSites),
+                                            start(flank(standardizedReplicatedSites, -1, start=T)))
+standardizedReplicatedSites <- split(standardizedReplicatedSites,
+                                    standardizedReplicatedSites$GTSP)
+standardizedReplicatedSites <- lapply(standardizedReplicatedSites, function(x){
+  x$replicate <- as.integer(as.factor(x$sampleName))
+  x$sampleName <- NULL
+  x
 })
 
 #this is slow (~1.5min/sample), but would be easy to parallelize - just be
@@ -79,15 +83,8 @@ standardizedDereplicatedSites <- lapply(standardizedReplicatedSites, function(si
   res
 })
 
-standardizedReplicatedSites <- unname(unlist(GRangesList(standardizedReplicatedSites)))
-mcols(standardizedReplicatedSites) <- merge(as.data.frame(mcols(standardizedReplicatedSites)),
-                                           sets[,c("GTSP", "Timepoint", "CellType", "timepointDay")])
-standardizedReplicatedSites$Timepoint <- sortFactorTimepoints(standardizedReplicatedSites$Timepoint)
-
-standardizedDereplicatedSites <- unname(unlist(GRangesList(standardizedDereplicatedSites)))
-mcols(standardizedDereplicatedSites) <- merge(as.data.frame(mcols(standardizedDereplicatedSites)),
-                                           sets[,c("GTSP", "Timepoint", "CellType", "timepointDay")])
-standardizedDereplicatedSites$Timepoint <- sortFactorTimepoints(standardizedDereplicatedSites$Timepoint)
+standardizedReplicatedSites <- prepSiteList(standardizedReplicatedSites)
+standardizedDereplicatedSites <- prepSiteList(standardizedDereplicatedSites)
 
 #============CALCULATE POPULATION SIZE/DIVERSITY INFORMATION=================
 populationInfo <- getPopulationInfo(standardizedReplicatedSites,
@@ -148,16 +145,12 @@ detailedAbunds <- getAbundanceSums(filterLowAbund(standardizedDereplicatedSites,
                                   c("CellType", "Timepoint"))
 
 #================Longitudinal Behaviour===============================
-longitudinal <- select(as.data.frame(standardizedDereplicatedSites), 
-    one_of("Timepoint", "CellType", "estAbundProp"))
-has_longitudinal_data <- FALSE
-if (nrow(longitudinal) > 0) {
-    has_longitudinal_data <- TRUE
-}
-#   if(length(unique(toplot$celltype))>8) {
-#     toplot$celltype <- abbreviate(toplot$celltype)
-#   }
-#   
+longitudinal <- as.data.frame(standardizedDereplicatedSites)[,c("Timepoint",
+                                                                "CellType",
+                                                                "estAbundProp",
+                                                                "posid")]
+has_longitudinal_data <- length(unique(longitudinal$Timepoint)) > 1
+
 
 #==================DETAILED REPORTS FOR BAD ACTORS=====================
 badActors <- c("LMO2", "IKZF1", "CCND2", "HMGA2", "MECOM")
@@ -192,7 +185,6 @@ timepointPopulationInfo <- melt(timepointPopulationInfo, "group")
 filename <- "report.md"
 outFilename <- gsub("\\.md",".html",filename)
 options(knitr.table.format='html')
-#knit("GTSPreport.Rmd", output=filename)
 theme_set(theme_bw()) #for ggplot2
 knit("GTSPreport.Rmd", output=filename)
 markdownToHTML(filename, outFilename, extensions=c('tables'),
