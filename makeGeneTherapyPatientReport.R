@@ -33,6 +33,9 @@ sets <- get_metadata_for_GTSP(unique(sampleName_GTSP$GTSP))
 # reports are for a single patient
 stopifnot(length(unique(sets$Patient)) == 1)
 patient <- sets$Patient[1]
+# and for a single trial
+stopifnot(length(unique(sets$Trial)) == 1)
+trial <- sets$Trial[1]
 
 # all GTSP in the database
 stopifnot(nrow(sets) == length(unique(sampleName_GTSP$GTSP)))
@@ -143,6 +146,18 @@ abundCutoff.detailed <- getAbundanceThreshold(standardizedDereplicatedSites, 50)
 detailedAbunds <- getAbundanceSums(filterLowAbund(standardizedDereplicatedSites,
                                                  abundCutoff.detailed),
                                   c("CellType", "Timepoint"))
+
+#================Longitudinal Behaviour===============================
+longitudinal <- select(as.data.frame(standardizedDereplicatedSites), 
+    one_of("Timepoint", "CellType", "estAbundProp"))
+has_longitudinal_data <- FALSE
+if (nrow(longitudinal) > 0) {
+    has_longitudinal_data <- TRUE
+}
+#   if(length(unique(toplot$celltype))>8) {
+#     toplot$celltype <- abbreviate(toplot$celltype)
+#   }
+#   
 
 #==================DETAILED REPORTS FOR BAD ACTORS=====================
 badActors <- c("LMO2", "IKZF1", "CCND2", "HMGA2", "MECOM")
