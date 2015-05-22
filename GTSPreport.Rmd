@@ -36,7 +36,7 @@ The graph below visualizes population based summaries as a function of time.
 ```{r pop_graphs, results='asis', fig.width=8, fig.height=6}
 if(length(unique(timepointPopulationInfo$group)) >1 ){
   ggplot(data=timepointPopulationInfo, aes(group, value)) + geom_bar(stat="identity") + facet_wrap(~variable, scales="free")
-}else{cat("**Only one timepoint, ", unique(timepointPopulationInfo$group), ", present.  Insufficient data available to plot population estimators across timepoints.**")}
+}else{cat(paste0("**Only one timepoint, ", unique(levels(timepointPopulationInfo$group)), ", present.  Insufficient data available to plot population estimators across timepoints.**"))}
 ```
 
 ## Relative abundance of cell clones
@@ -45,7 +45,7 @@ The relative abundance of cell clones is summarized in the attached stacked bar 
 
 Integration sites were recovered using ligation mediated PCR after random fragmentation of genomic DNA, which reduces recovery biases compared with restriction enzyme cleavage. Relative abundance was not measured from read counts, which are known to be inaccurate, but from marks introduced into DNA specimens prior to PCR amplification using the SonicLength method [PMID:22238265](http://www.ncbi.nlm.nih.gov/pubmed/22238265).
 
-*Note*: In the barplots below any sites with Estimated Relative Abundance below `r percent(abundCutoff.barplots)` are binned as *LowAbund*. In cases where the legends are getting clipped for a certain celltype;  it is safe to assume that at a given timepoint numerous integration sites were equally abundant hence scoring the same rank.
+In the barplots below, any sites with Estimated Relative Abundance below `r percent(abundCutoff.barplots)` are binned as LowAbund.
 
 ```{r barPlots, fig.height=12, fig.width=12}
 siteColors = structure(gg_color_hue(length(unique(barplotAbunds$maskedRefGeneName))), names=unique(barplotAbunds$maskedRefGeneName))
@@ -57,7 +57,7 @@ ggplot(data=barplotAbunds, aes(Timepoint, estAbundProp, fill=maskedRefGeneName))
   scale_y_continuous(labels=percent)
 ```
 
-Here is another way to perceive top ranking integration sites by genes within each celltype.
+Here is another way to perceive top ranking integration sites by genes within each celltype.  Any sites with Estimated Relative Abundance below `r percent(abundCutoff.detailed)` are binned as LowAbund.
 
 ```{r sitetype_heatmap, fig.width=12, fig.height=11}
 ggplot(data=detailedAbunds, aes(Timepoint, maskedRefGeneName, fill=estAbundProp)) + geom_tile() +
@@ -80,7 +80,7 @@ if (has_longitudinal_data) {
     scale_y_continuous(name="Relative Sonic Abundance",
                        labels=percent,expand=c(0,0)) +
     theme(axis.text.x=element_text(angle=45,hjust=1,vjust=1))
-  }else{cat("**Only one timepoint, ", unique(timepointPopulationInfo$group), ", present.  Insufficient data available to plot changes of clone densities across timepoints.**")}
+  }else{cat(paste0("**Only one timepoint, ", unique(levels(timepointPopulationInfo$group)), ", present.  Insufficient data available to plot changes of clone densities across timepoints.**"))}
 ```
 
 ## Integration sites near particular genes of interest
