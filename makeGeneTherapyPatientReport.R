@@ -8,6 +8,7 @@ library("reldist")
 library("sonicLength")
 library("reshape2")
 library("scales")
+library("dplyr")
 
 source("intSiteRetriever/intSiteRetriever.R")
 source("CancerGeneList/onco_genes.R")
@@ -43,13 +44,12 @@ stopifnot(nrow(sets) == length(unique(sampleName_GTSP$GTSP)))
 #end INPUTS 
 
 sets <- merge(sets, read_sites_sample_GTSP)
+sets$Timepoint <- sortFactorTimepoints(sets$Timepoint)
 
 refGenomes <- getRefGenome(sampleName_GTSP$sampleName)
 # at present the whole report is done for one genome
 stopifnot(length(unique(refGenomes$refGenome))==1)
 freeze <- refGenomes[1, "refGenome"]
-
-sets$timepointDay <- mdy_to_day(sets$Timepoint)
 
 #==========GET AND PERFORM BASIC DEREPLICATION/SONICABUND ON SITES=============
 sites <- merge(getUniquePCRbreaks(sampleName_GTSP$sampleName), sampleName_GTSP)
@@ -59,7 +59,7 @@ uniqueSites.gr <- GRanges(seqnames=Rle(sites$chr),
                           ranges=IRanges(start=pmin(sites$integration, sites$breakpoint),
                                          end=pmax(sites$integration, sites$breakpoint)),
                           strand=Rle(sites$strand))
-mcols() <- sites[,c("sampleName", "GTSP")]
+mcols(uniqueSites.gr) <- sites[,c("sampleName", "GTSP")]
 
 #standardize sites across all GTSPs
 standardizedReplicatedSites <- standardizeSites(uniqueSites.gr)
@@ -163,17 +163,17 @@ badActorData <- sapply(badActors, function(badActor){
 
 
 #==================SET VARIABLES FOR MARKDOWN REPORT=====================
-timepoint <- sort(unique(sets$timepointDay))
+timepoint <- levels(sets$Timepoint)
 
 cols <- c("Trial", "GTSP", "Patient", "Timepoint", "CellType", 
           "TotalReads", "UniqueSites", "FragMethod", "VCN")
-summaryTable <- arrange(sets,timepointDay,CellType)
+summaryTable <- arrange(sets,Timepoint,CellType)
 summaryTable <- summaryTable[,cols]
 
 cols <- c("Patient", "Timepoint", "CellType", "UniqueSites",
           "Replicates", "FragMethod", "VCN", "S.chao1", "Gini", "Shannon")
-popSummaryTable <- merge(sets,  populationInfo)
-popSummaryTable <- arrange(popSummaryTable,timepointDay,CellType)
+popSummaryTable <- merge(sets,  populationInfo, by.x="GTSP", by.y="group")
+popSummaryTable <- arrange(popSummaryTable,Timepoint,CellType)
 popSummaryTable <- popSummaryTable[,cols]
 
 timepointPopulationInfo <- melt(timepointPopulationInfo, "group")

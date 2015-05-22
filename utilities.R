@@ -112,7 +112,7 @@ as.sortedFactor <- function(unsortedFactor){
 prepSiteList <- function(sites){
   sites <- unname(unlist(GRangesList(sites)))
   mcols(sites) <- merge(as.data.frame(mcols(sites)),
-                        sets[,c("GTSP", "Timepoint", "CellType", "timepointDay")])
+                        sets[,c("GTSP", "Timepoint", "CellType")])
   sites$Timepoint <- sortFactorTimepoints(sites$Timepoint)
   sites
 }
