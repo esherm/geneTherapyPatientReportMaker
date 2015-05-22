@@ -4,6 +4,7 @@ library("markdown")
 library("knitr")
 library("hiAnnotator")
 library("ggplot2")
+library(reldist)
 library("sonicLength")
 library("reshape2")
 library("scales")
@@ -31,6 +32,11 @@ read_sites_sample_GTSP <- get_read_site_totals(sampleName_GTSP)
 sets <- get_metadata_for_GTSP(unique(sampleName_GTSP$GTSP))
 # reports are for a single patient
 stopifnot(length(unique(sets$Patient)) == 1)
+patient <- sets$Patient[1]
+# and for a single trial
+stopifnot(length(unique(sets$Trial)) == 1)
+trial <- sets$Trial[1]
+
 # all GTSP in the database
 stopifnot(nrow(sets) == length(unique(sampleName_GTSP$GTSP)))
 
@@ -41,6 +47,7 @@ sets <- merge(sets, read_sites_sample_GTSP)
 refGenomes <- getRefGenome(sampleName_GTSP$sampleName)
 # at present the whole report is done for one genome
 stopifnot(length(unique(refGenomes$refGenome))==1)
+freeze <- refGenomes[1, "refGenome"]
 
 sets$timepointDay <- mdy_to_day(sets$Timepoint)
 
@@ -103,8 +110,8 @@ timepointPopulationInfo$UniqueSites <- sapply(split(standardizedDereplicatedSite
 #=======================ANNOTATE DEREPLICATED SITES==========================
 #standard refSeq genes
 refSeq_genes <- makeGRanges(
-  getUCSCtable("refGene", "RefSeq Genes", freeze=reference_genome),
-  freeze=unique(refGenomes$refGenome) #there will only be one as enforced above
+  getUCSCtable("refGene", "RefSeq Genes", freeze=freeze),
+  freeze=freeze
 )
 
 standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites,
@@ -140,6 +147,18 @@ detailedAbunds <- getAbundanceSums(filterLowAbund(standardizedDereplicatedSites,
                                                  abundCutoff.detailed),
                                   c("CellType", "Timepoint"))
 
+#================Longitudinal Behaviour===============================
+longitudinal <- select(as.data.frame(standardizedDereplicatedSites), 
+    one_of("Timepoint", "CellType", "estAbundProp"))
+has_longitudinal_data <- FALSE
+if (nrow(longitudinal) > 0) {
+    has_longitudinal_data <- TRUE
+}
+#   if(length(unique(toplot$celltype))>8) {
+#     toplot$celltype <- abbreviate(toplot$celltype)
+#   }
+#   
+
 #==================DETAILED REPORTS FOR BAD ACTORS=====================
 badActors <- c("LMO2", "IKZF1", "CCND2", "HMGA2", "MECOM")
 
@@ -151,8 +170,6 @@ badActorData <- sapply(badActors, function(badActor){
 
 
 #==================SET VARIABLES FOR MARKDOWN REPORT=====================
-patient <- sets$Patient[1]
-freeze <- refGenomes[1, "refGenome"]
 timepoint <- sort(unique(sets$timepointDay))
 
 cols <- c("Trial", "GTSP", "Patient", "Timepoint", "CellType", 

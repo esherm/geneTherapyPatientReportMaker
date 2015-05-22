@@ -43,6 +43,13 @@ intSiteRetriever : https://github.com/esherm/intSiteRetriever
 git clone https://github.com/esherm/intSiteRetriever
 ```)
 hiAnnotator
+reldist
+
+Cancer Gene list:
+
+```
+git clone https://github.com/anatolydryga/CancerGeneList.git
+```
 
 # Testing
 
