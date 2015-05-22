@@ -137,12 +137,21 @@ barplotAbunds <- getAbundanceSums(filterLowAbund(standardizedDereplicatedSites,
                                                  abundCutoff.barplots),
                                   c("CellType", "Timepoint"))
 
+barplotAbunds <- arrange(barplotAbunds, estAbundProp)
+
 #detailed abundance plot
 abundCutoff.detailed <- getAbundanceThreshold(standardizedDereplicatedSites, 50)
 
 detailedAbunds <- getAbundanceSums(filterLowAbund(standardizedDereplicatedSites,
                                                  abundCutoff.detailed),
                                   c("CellType", "Timepoint"))
+
+categorySums <- sapply(split(detailedAbunds$estAbundProp,
+                             detailedAbunds$maskedRefGeneName),sum)
+
+detailedAbunds$maskedRefGeneName <- factor(detailedAbunds$maskedRefGeneName,
+                                           levels=names(sort(categorySums)))
+
 
 #================Longitudinal Behaviour===============================
 longitudinal <- as.data.frame(standardizedDereplicatedSites)[,c("Timepoint",
