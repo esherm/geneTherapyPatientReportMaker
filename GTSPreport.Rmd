@@ -86,7 +86,7 @@ if (has_longitudinal_data) {
 ## Integration sites near particular genes of interest
 
 Integration sites near genes that have been associated with adverse events are of particular interest. Thus, we have cataloged all integration sites for which a gene of interest is the nearest cancer-related gene.
-Results are summarized below as a scatter plot where the y-axis shows relative abundance of sites and x-axis is distance to the nearest onconogene 5' end. **NEED TO FIGURE OUT WHAT +/- MEAN**
+Results are summarized below as a scatter plot where the y-axis shows relative abundance of sites and x-axis is distance to the nearest onconogene 5' end. Negative distances indicate that the integration site is downstream from (i.e. after) the TSS.  Positive distances indicate that the integration site is upstream from (i.e. before) the TSS.  Note that all RefSeq splicing isoforms are used for this analysis, so the reference TSS may not be the same for each listed integration site.
 
 
 ```{r badActors, include=FALSE}
