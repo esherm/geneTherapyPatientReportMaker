@@ -4,7 +4,7 @@ source("intSiteRetriever/intSiteRetriever.R")
 #' gets counts from intSite DB and collapse replicates.
 #' @param df with cols: sampleName, GTSP
 get_read_site_totals <- function(sampleName_GTSP) {
-    reads <- get_count_per_GTSP(sampleName_GTSP, getReadCounts, "TotalReads")
+    reads <- get_count_per_GTSP(sampleName_GTSP, getUniqueSiteReadCounts, "TotalReads")
     sites <- get_count_per_GTSP(sampleName_GTSP, getUniqueSiteCounts, "UniqueSites")
     merge(reads, sites)
 }
