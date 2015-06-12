@@ -9,9 +9,14 @@ library("sonicLength")
 library("reshape2")
 library("scales")
 library("dplyr")
+library("intSiteRetriever")
 
-source("intSiteRetriever/intSiteRetriever.R")
+unlink("CancerGeneList", force=TRUE, recursive=TRUE)
+cmd <- "git clone https://github.com/BushmanLab/CancerGeneList.git"
+message(cmd)
+stopifnot( system(cmd)==0 )
 source("CancerGeneList/onco_genes.R")
+
 source("utilities.R")
 source("specimen_management.R")
 source("estimatedAbundance.R")
@@ -21,14 +26,16 @@ source("read_site_totals.R")
 source("populationInfo.R")
 source("abundanceFilteringUtils.R")
 
-#INPUTS: csv file/table GTSP to sampleName
+## INPUTS: csv file/table GTSP to sampleName
 
 sampleName_GTSP <- read.csv("sampleName_GTSP.csv")
 GTSPs <- unique(sampleName_GTSP$GTSP)
 
-stopifnot(all(setNameExists(sampleName_GTSP$sampleName)))
+junk <- sapply(dbListConnections(MySQL()), dbDisconnect)
+dbConn <- dbConnect(MySQL(), group="intSitesDev237")
+stopifnot(all(setNameExists(sampleName_GTSP$sampleName, dbConn)))
 
-read_sites_sample_GTSP <- get_read_site_totals(sampleName_GTSP)
+read_sites_sample_GTSP <- get_read_site_totals(sampleName_GTSP, dbConn)
 
 sets <- get_metadata_for_GTSP(unique(sampleName_GTSP$GTSP))
 # reports are for a single patient
@@ -46,13 +53,17 @@ stopifnot(nrow(sets) == length(unique(sampleName_GTSP$GTSP)))
 sets <- merge(sets, read_sites_sample_GTSP)
 sets$Timepoint <- sortFactorTimepoints(sets$Timepoint)
 
-refGenomes <- getRefGenome(sampleName_GTSP$sampleName)
+junk <- sapply(dbListConnections(MySQL()), dbDisconnect)
+dbConn <- dbConnect(MySQL(), group="intSitesDev237")
+refGenomes <- getRefGenome(sampleName_GTSP$sampleName, dbConn)
 # at present the whole report is done for one genome
 stopifnot(length(unique(refGenomes$refGenome))==1)
 freeze <- refGenomes[1, "refGenome"]
 
-#==========GET AND PERFORM BASIC DEREPLICATION/SONICABUND ON SITES=============
-sites <- merge(getUniquePCRbreaks(sampleName_GTSP$sampleName), sampleName_GTSP)
+##==========GET AND PERFORM BASIC DEREPLICATION/SONICABUND ON SITES=============
+junk <- sapply(dbListConnections(MySQL()), dbDisconnect)
+dbConn <- dbConnect(MySQL(), group="intSitesDev237")
+sites <- merge(getUniquePCRbreaks(sampleName_GTSP$sampleName, dbConn), sampleName_GTSP)
 
 #we really don't care about seqinfo - we just want a GRange object for easy manipulation
 uniqueSites.gr <- GRanges(seqnames=Rle(sites$chr),

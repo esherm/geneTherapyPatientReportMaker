@@ -1,11 +1,11 @@
-source("intSiteRetriever/intSiteRetriever.R")
+##source("intSiteRetriever/R/intSiteRetriever.R")
 
 #' for a given df with 2 cols: sampleName and GTSP
 #' gets counts from intSite DB and collapse replicates.
 #' @param df with cols: sampleName, GTSP
-get_read_site_totals <- function(sampleName_GTSP) {
-    reads <- get_count_per_GTSP(sampleName_GTSP, getUniqueSiteReadCounts, "TotalReads")
-    sites <- get_count_per_GTSP(sampleName_GTSP, getUniqueSiteCounts, "UniqueSites")
+get_read_site_totals <- function(sampleName_GTSP, connection) {
+    reads <- get_count_per_GTSP(sampleName_GTSP, getUniqueSiteReadCounts, "TotalReads", connection)
+    sites <- get_count_per_GTSP(sampleName_GTSP, getUniqueSiteCounts, "UniqueSites", connection)
     merge(reads, sites)
 }
 
@@ -13,8 +13,8 @@ get_read_site_totals <- function(sampleName_GTSP) {
 #' call database_function to get counts then collapse all samples with the same GTSP
 #' numbers.
 #' @return df with 2 cols: GTSP, column_name
-get_count_per_GTSP <- function(sampleName_GTSP, database_function, column_name) {
-    sample_count <- database_function(sampleName_GTSP$sampleName)
+get_count_per_GTSP <- function(sampleName_GTSP, database_function, column_name, connection) {
+    sample_count <- database_function(sampleName_GTSP$sampleName, connection)
     names(sample_count) <- c("sampleName", column_name)
     sample_count_GTSP <- merge(sample_count, sampleName_GTSP)
     aggregate(sample_count_GTSP[column_name], sample_count_GTSP['GTSP'], FUN=sum)
