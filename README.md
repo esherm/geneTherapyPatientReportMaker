@@ -22,7 +22,7 @@ GTSP0309-4,GTSP0309
 * all sites should be computed based on one reference genome.
   
 # Output
-A embeded html file named `$trial.$patient.$today.html`
+An embeded html file named `$trial.$patient.$today.html`
 
 # Code example
 ```
