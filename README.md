@@ -22,13 +22,13 @@ GTSP0309-4,GTSP0309
 * all sites should be computed based on one reference genome.
   
 # Output
-A embeded html file named `$trial.$patient.html`
+A embeded html file named `$trial.$patient.$today.html`
 
 # Code example
 ```
-Rscript path/to/makeGeneTherapyPatientReport.R  # assuming sampleName_GTSP.csv
+Rscript path/to/makeGeneTherapyPatientReport.R  #assuming sampleName_GTSP.csv in current folder
 Rscript path/to/makeGeneTherapyPatientReport.R sampleName_GTSP.csv
-Rscript path/to/makeGeneTherapyPatientReport.R test.csv
+Rscript path/to/makeGeneTherapyPatientReport.R path/to/test.csv
 ```
 	
 # Note
