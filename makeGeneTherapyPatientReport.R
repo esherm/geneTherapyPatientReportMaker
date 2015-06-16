@@ -215,7 +215,9 @@ timepointPopulationInfo <- melt(timepointPopulationInfo, "group")
 
 #### begin generating markdown ####
 unlink("figureByPatient", force=TRUE, recursive=TRUE)
-mdfile <- paste(unique(trial), unique(patient), "md", sep=".")
+mdfile <- paste(unique(trial), unique(patient),
+                format(Sys.Date(), format="%Y%m%d"), "md",
+                sep=".")
 
 htmlfile <- gsub("\\.md$",".html",mdfile)
 options(knitr.table.format='html')
