@@ -1,23 +1,38 @@
 # geneTherapyPatientReportMaker
 For a specific patient, report integration near oncogenes and potentially expanded clones across cell types and multiple time points
-
+	
 # Input
+A csv file such as `sampleName_GTSP.csv` to describe the replicates and the samples.
+```
+head sampleName_GTSP.csv
 
-Report is done for individual patient for multiple timepoints and cell types, each corresponding to unique
-GTSP. For each sample multiple preps can be used. 
-
-Sample name corresponds to name used in integration site calling DB.
-
-Format is (tab-separated):
-```{bash}
-GTSP    sampleName
+sampleName,GTSP
+GTSP0308-1,GTSP0308
+GTSP0308-2,GTSP0308
+GTSP0308-3,GTSP0308
+GTSP0308-4,GTSP0308
+GTSP0309-1,GTSP0309
+GTSP0309-2,GTSP0309
+GTSP0309-3,GTSP0309
+GTSP0309-4,GTSP0309
 ```
 
-# Checked Assumptions
-* The patient report is done for a single patient.
-* All sites should be computed based on one reference genome.
-* All sample names and GTSPs should exist in intSite and specimen managemnet databases.
+* the GTSPxxxx names must correspond to the same patient
+* the GTSPxxxx names must be in the `specimen_management` database
+* all sites should be computed based on one reference genome.
+  
+# Output
+A embeded html file named `$trial.$patient.html`
 
+# Code example
+```
+Rscript path/to/makeGeneTherapyPatientReport.R  # assuming sampleName_GTSP.csv
+Rscript path/to/makeGeneTherapyPatientReport.R sampleName_GTSP.csv
+Rscript path/to/makeGeneTherapyPatientReport.R test.csv
+```
+	
+# Note
+Do NOT run multiple instances with in the same folder
 
 # Database connfig file location
 

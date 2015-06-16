@@ -73,7 +73,7 @@ When multiple time points are available, it is of interest to track the behavior
 ```{r ParallelLines, fig.width=10, fig.height=10}
 if (has_longitudinal_data) {
   ggplot(longitudinal, aes(x=Timepoint, y=estAbundProp)) +
-    geom_point(size=.5) +
+    geom_point(size=3) +
     geom_line(aes(colour=posid, group=posid), alpha=.5, show_guide=FALSE) +
     facet_wrap(~CellType, scales="free") +
     ggtitle(paste("Patient:", patient, "Trial:", trial)) + xlab("Timepoint") + 

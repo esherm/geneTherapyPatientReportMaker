@@ -9,7 +9,21 @@ library("sonicLength")
 library("reshape2")
 library("scales")
 library("dplyr")
-library("intSiteRetriever")
+library("intSiteRetriever") # installed from github
+
+codeDir <- dirname(sub("--file=", "", grep("--file=", commandArgs(trailingOnly=FALSE), value=T)))
+if( length(codeDir)!=1 ) codeDir <- "."
+stopifnot(file.exists(file.path(codeDir, "GTSPreport.css")))
+stopifnot(file.exists(file.path(codeDir, "GTSPreport.Rmd")))
+
+source(file.path(codeDir, "utilities.R"))
+source(file.path(codeDir, "specimen_management.R"))
+source(file.path(codeDir, "estimatedAbundance.R"))
+source(file.path(codeDir, "dereplicateSites.R"))
+source(file.path(codeDir, "standardizeSites.R"))
+source(file.path(codeDir, "read_site_totals.R"))
+source(file.path(codeDir, "populationInfo.R"))
+source(file.path(codeDir, "abundanceFilteringUtils.R"))
 
 unlink("CancerGeneList", force=TRUE, recursive=TRUE)
 cmd <- "git clone https://github.com/BushmanLab/CancerGeneList.git"
@@ -17,18 +31,16 @@ message(cmd)
 stopifnot( system(cmd)==0 )
 source("CancerGeneList/onco_genes.R")
 
-source("utilities.R")
-source("specimen_management.R")
-source("estimatedAbundance.R")
-source("dereplicateSites.R")
-source("standardizeSites.R")
-source("read_site_totals.R")
-source("populationInfo.R")
-source("abundanceFilteringUtils.R")
 
-## INPUTS: csv file/table GTSP to sampleName
+#### INPUTS: csv file/table GTSP to sampleName ####
+csvfile <- "sampleName_GTSP.csv"
+args <- commandArgs(trailingOnly=TRUE)
+if( length(args)==1 ) csvfile <- args[1]
+message("Reading csv from ", csvfile)
+stopifnot(file.exists(csvfile))
 
-sampleName_GTSP <- read.csv("sampleName_GTSP.csv")
+
+sampleName_GTSP <- read.csv(csvfile)
 GTSPs <- unique(sampleName_GTSP$GTSP)
 
 junk <- sapply(dbListConnections(MySQL()), dbDisconnect)
@@ -48,7 +60,8 @@ trial <- sets$Trial[1]
 # all GTSP in the database
 stopifnot(nrow(sets) == length(unique(sampleName_GTSP$GTSP)))
 
-#end INPUTS 
+##end INPUTS
+sets[sets$Timepoint=="NULL", "Timepoint"] = "d0"
 
 sets <- merge(sets, read_sites_sample_GTSP)
 sets$Timepoint <- sortFactorTimepoints(sets$Timepoint)
@@ -198,16 +211,24 @@ popSummaryTable <- popSummaryTable[,cols]
 
 timepointPopulationInfo <- melt(timepointPopulationInfo, "group")
 
-#end setting variables for markdown report
+##end setting variables for markdown report
 
-#begin generating markdown
+#### begin generating markdown ####
+unlink("figureByPatient", force=TRUE, recursive=TRUE)
+mdfile <- paste(unique(trial), unique(patient), "md", sep=".")
 
-filename <- "report.md"
-outFilename <- gsub("\\.md",".html",filename)
+htmlfile <- gsub("\\.md$",".html",mdfile)
 options(knitr.table.format='html')
 theme_set(theme_bw()) #for ggplot2
-knit("GTSPreport.Rmd", output=filename)
-markdownToHTML(filename, outFilename, extensions=c('tables'),
-    options=c(markdownHTMLOptions(defaults=T),"toc"),
-    stylesheet="GTSPreport.css")
+knit(file.path(codeDir, "GTSPreport.Rmd"), output=mdfile)
+markdownToHTML(mdfile, htmlfile, extensions=c('tables'),
+               options=c(markdownHTMLOptions(defaults=T), "toc"),
+               stylesheet=file.path(codeDir, "GTSPreport.css") )
+
+#### clean up ####
+unlink("figureByPatient", force=TRUE, recursive=TRUE)
+unlink("CancerGeneList", force=TRUE, recursive=TRUE)
+unlink(mdfile, force=TRUE, recursive=TRUE)
+
+message("Report ", htmlfile, " is generated from ", csvfile)
 
