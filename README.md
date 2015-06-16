@@ -1,4 +1,8 @@
 # geneTherapyPatientReportMaker
+For the time being, please use branch `report_from_microb237`
+
+https://github.com/BushmanLab/geneTherapyPatientReportMaker/tree/report_from_microb237
+
 For a specific patient, report integration near oncogenes and potentially expanded clones across cell types and multiple time points
 
 # Input
