@@ -17,8 +17,10 @@ GTSP0309-3,GTSP0309
 GTSP0309-4,GTSP0309
 ```
 
-* the GTSPxxxx names must correspond to the same patient
-* the GTSPxxxx names must be in the `specimen_management` database
+* only `sampleName`, `GTSP` are necessary,
+* there could be more columns, but the extra columns are ignored,
+* the GTSPxxxx names must correspond to the same patient,
+* the GTSPxxxx names must be in the `specimen_management` database,
 * all sites should be computed based on one reference genome.
   
 # Output

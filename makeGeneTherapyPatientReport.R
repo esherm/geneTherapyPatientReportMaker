@@ -39,8 +39,10 @@ if( length(args)==1 ) csvfile <- args[1]
 message("Reading csv from ", csvfile)
 stopifnot(file.exists(csvfile))
 
-
 sampleName_GTSP <- read.csv(csvfile)
+message("Generating report from the following sets")
+print(sampleName_GTSP)
+
 GTSPs <- unique(sampleName_GTSP$GTSP)
 
 junk <- sapply(dbListConnections(MySQL()), dbDisconnect)
