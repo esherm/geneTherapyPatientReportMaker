@@ -27,8 +27,8 @@ merged.tab <- subset(merged.tab, select=c("trial", "patient", "specimenaccnum", 
 pat <- commandArgs(trailingOnly=TRUE)[1]
 if( is.na(pat) | !(pat %in% merged.tab$patient) ) {
     write.table(merged.tab, "", sep = "\t", row.names=FALSE, quote=FALSE)
+    if( is.na(pat) ) q()
     if( !(pat %in% merged.tab$patient) ) stop(pat, " patient not found in the above table")
-    q()
 }
 
 df <- subset(merged.tab, patient==pat, select=c("samplename", "specimenaccnum", "patient"))
