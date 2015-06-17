@@ -13,8 +13,6 @@ GTSP0308-3,GTSP0308
 GTSP0308-4,GTSP0308
 GTSP0309-1,GTSP0309
 GTSP0309-2,GTSP0309
-GTSP0309-3,GTSP0309
-GTSP0309-4,GTSP0309
 
 #or 
 Rscript path/to/check_patient_GTSP.R pFR03
@@ -31,20 +29,20 @@ GTSP0308-3,GTSP0308,pFR03
 * all sites should be computed based on one reference genome.
   
 #### Output
-An embeded html file named `$trial.$patient.$today.html`
+`$trial.$patient.$today.html`
 
 #### Code example
-- Generate csv files for a patient
+- 1. Generate the csv file for a patient using `check_patient_GTSP.R`
 ```
- Rscript path/to/check_patient_GTSP.R                  #get all processed samples
- Rscript path/to/check_patient_GTSP.R pFR03            #get data sets for patient pFR03 and output to csv format
- Rscript path/to/check_patient_GTSP.R pFR03 > tmp.csv  #get data sets for patient pFR03 and output to tmp.csv
+ Rscript path/to/check_patient_GTSP.R                    #get all processed samples
+ Rscript path/to/check_patient_GTSP.R pFR03              #get data sets for patient pFR03 and output to csv format
+ Rscript path/to/check_patient_GTSP.R pFR03 > pFR03.csv  #get data sets for patient pFR03 and output to tmp.csv
 ```
 
-- Generate report from csv files
+- 2. Generate report from csv files using `makeGeneTherapyPatientReport.R`
 ```
-Rscript path/to/makeGeneTherapyPatientReport.R tmp.csv     #generated above
-Rscript makeGeneTherapyPatientReport.R sampleName_GTSP.csv #included example in the repo folder
+Rscript makeGeneTherapyPatientReport.R                     #read in sampleName_GTSP.csv by default
+Rscript path/to/makeGeneTherapyPatientReport.R pFR03.csv   #generated above
 ```
 
 #### Note
