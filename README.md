@@ -25,7 +25,7 @@ GTSP0308-3,GTSP0308,pFR03
 
 * only `sampleName`, `GTSP` columns are necessary and the rest are ignored,
 * the `GTSPxxxx` names must correspond to the same patient,
-* the `GTSPxxxx` names must be in the `specimen_management` database,
+* the `GTSPxxxx` names must be in the `specimen_management.gtsp` database,
 * all sites should be computed based on one reference genome.
   
 #### Output
