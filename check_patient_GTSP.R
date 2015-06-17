@@ -1,15 +1,16 @@
-library("RMySQL") #also loads DBI
+library("methods", quietly=TRUE)
+library("RMySQL", quietly = TRUE) #also loads DBI
 
 junk <- sapply(dbListConnections(MySQL()), dbDisconnect)
 dbConn <- dbConnect(MySQL(), group="intSitesDev237")
 
 sql <- "select trial, patient, SpecimenAccNum from specimen_management.gtsp"
-message(sql)
+##message(sql)
 trial_pat_gtsp <- dbGetQuery(dbConn,sql)
 names(trial_pat_gtsp) <- tolower(names(trial_pat_gtsp))
 
 sql <- "select sampleName, refGenome, gender from samples"
-message(sql)
+##message(sql)
 set_ref_gen <- dbGetQuery(dbConn,sql)
 names(set_ref_gen) <- tolower(names(set_ref_gen))
 set_ref_gen$gtsp <- sub("-\\d+$", "", set_ref_gen$samplename)
@@ -21,7 +22,7 @@ merged.tab <- plyr:::arrange(merged.tab, trial, patient, specimenaccnum, samplen
 
 merged.tab <- subset(merged.tab, select=c("trial", "patient", "specimenaccnum", "samplename", "refgenome", "gender"))
 
-message()
+##message()
 
 pat <- commandArgs(trailingOnly=TRUE)[1]
 if( is.na(pat) | !(pat %in% merged.tab$patient) ) {
