@@ -32,21 +32,21 @@ GTSP0308-3,GTSP0308,pFR03
 `$trial.$patient.$today.html`
 
 #### Code example
-- 1. Generate the csv file for a patient using `check_patient_GTSP.R`
+- 1. `check_patient_GTSP.R`: get available datasets, generate a csv file for a patient 
 ```
  Rscript path/to/check_patient_GTSP.R                    #get all processed samples
  Rscript path/to/check_patient_GTSP.R pFR03              #get data sets for patient pFR03 and output to csv format
  Rscript path/to/check_patient_GTSP.R pFR03 > pFR03.csv  #get data sets for patient pFR03 and output to tmp.csv
 ```
 
-- 2. Generate report from csv files using `makeGeneTherapyPatientReport.R`
+- 2. `makeGeneTherapyPatientReport.R`: generate report for a patient from the csv file 
 ```
 Rscript makeGeneTherapyPatientReport.R                     #read in sampleName_GTSP.csv by default
 Rscript path/to/makeGeneTherapyPatientReport.R pFR03.csv   #generated above
 ```
 
 #### Note
-Do NOT run multiple instances with in the same folder
+Do NOT run multiple instances within the same folder
 
 #### Database connfig file location
 
