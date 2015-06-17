@@ -4,7 +4,7 @@ library("RMySQL", quietly = TRUE) #also loads DBI
 junk <- sapply(dbListConnections(MySQL()), dbDisconnect)
 dbConn <- dbConnect(MySQL(), group="intSitesDev237")
 
-sql <- "select trial, patient, SpecimenAccNum from specimen_management.gtsp"
+sql <- "select trial, patient, CellType, Timepoint, SpecimenAccNum from specimen_management.gtsp"
 ##message(sql)
 trial_pat_gtsp <- dbGetQuery(dbConn,sql)
 names(trial_pat_gtsp) <- tolower(names(trial_pat_gtsp))

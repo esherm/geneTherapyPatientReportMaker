@@ -4,7 +4,7 @@ library("RMySQL", quietly = TRUE) #also loads DBI
 junk <- sapply(dbListConnections(MySQL()), dbDisconnect)
 dbConn <- dbConnect(MySQL(), group="intSitesDev237")
 
-sql <- "select trial, patient, SpecimenAccNum from specimen_management.gtsp"
+sql <- "select trial, patient, CellType, Timepoint, SpecimenAccNum from specimen_management.gtsp"
 ##message(sql)
 trial_pat_gtsp <- dbGetQuery(dbConn,sql)
 names(trial_pat_gtsp) <- tolower(names(trial_pat_gtsp))
@@ -20,7 +20,7 @@ merged.tab <- merge(trial_pat_gtsp, set_ref_gen,
 
 merged.tab <- plyr:::arrange(merged.tab, trial, patient, specimenaccnum, samplename, refgenome, gender)
 
-merged.tab <- subset(merged.tab, select=c("trial", "patient", "specimenaccnum", "samplename", "refgenome", "gender"))
+merged.tab <- subset(merged.tab, select=c("trial", "patient", "celltype", "timepoint", "specimenaccnum", "samplename", "refgenome", "gender"))
 
 ##message()
 
@@ -31,8 +31,8 @@ if( is.na(pat) | !(pat %in% merged.tab$patient) ) {
     if( !(pat %in% merged.tab$patient) ) stop(pat, " patient not found in the above table")
 }
 
-df <- subset(merged.tab, patient==pat, select=c("samplename", "specimenaccnum", "patient"))
-colnames(df) <- c("sampleName", "GTSP", "patient")
+df <- subset(merged.tab, patient==pat, select=c("samplename", "specimenaccnum", "patient", "celltype", "timepoint"))
+colnames(df) <- c("sampleName", "GTSP", "patient", "celltype", "timepoint")
 
 write.csv(df, file="", row.names=FALSE, quote=FALSE)
 q()
