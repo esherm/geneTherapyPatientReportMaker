@@ -108,27 +108,21 @@ badActorOut <- lapply(badActors, function(badActor){
 `r knit(text = unlist(badActorOut))`
 
 ## Do any clones account for greater than 20% of the total?
-  
+`r percent_cutoff <- 0.2`  
 For some trials, a reporting criteria is whether any cell clones expand to account for greater than 20% of all clones. This is summarized below for subject `r patient`. Abundance is estimated using the SonicLength method. Data such as this must, of course, be interpreted in the context of results from other assays.
 
-```{r TwentyPercSites, results="asis"}
 ### Sites >20% of data by Alias ###
-knit_exit()
-rows <- sites.qc$estAbundance1Prop >= .2
-
-if(any(rows)) {
-  test2 <- arrange(unique(sites.qc[rows,c("patient", "timepoint", "celltype", "posID",
-                                          "estAbundance1", "estAbundance1Prop",
-                                          "estAbundance1Rank", "geneType")]),
-                   patient,timepoint,celltype,plyr::desc(estAbundance1Prop),posID)
-  tps <- sortTimePoints(test2$timepoint)  
-  test2$timepoint <- factor(test2$timepoint, levels=names(tps))
-  test2 <- arrange(test2, patient,timepoint,celltype,estAbundance1Rank)  
-  names(test2) <- col.keys[names(test2)]
-  test2$RelativeAbundance <- percent(test2$RelativeAbundance)
-  kable(test2, caption="Sites >20% of the Total", format="html", row.names=FALSE)  
-} else { 
-  cat("<strong>No sites found in this patient which are greater than 20% of the total data.</strong>")        
+```{r TwentyPercSites, results="asis"}
+percent_cutoff <- 0.2
+rows <- standardizedDereplicatedSites$estAbundProp >= percent_cutoff
+if( any(rows) ) {
+	df <- as.data.frame(standardizedDereplicatedSites[rows,])
+    df$Timepoint <- sortFactorTimepoints(df$Timepoint)
+    df <- arrange(df, Timepoint, CellType, estAbund)
+	df$estAbundProp <- percent(df$estAbundProp)
+	kable(df, caption=sprintf("Sites >%s of the Total", percent(percent_cutoff)), format="html", 		row.names=FALSE)
+} else {
+	cat(sprintf("<strong>No sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
 }
 ```
 
