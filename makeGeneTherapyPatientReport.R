@@ -1,3 +1,5 @@
+options(stringsAsFactors = FALSE)
+
 #### load up require packages + objects #### 
 library("RMySQL") #also loads DBI
 library("markdown")
@@ -12,7 +14,8 @@ library("dplyr")
 library("intSiteRetriever") # installed from github
 
 codeDir <- dirname(sub("--file=", "", grep("--file=", commandArgs(trailingOnly=FALSE), value=T)))
-if( length(codeDir)!=1 ) codeDir <- "."
+if( length(codeDir)!=1 ) codeDir <- list.files(path="~", pattern="geneTherapyPatientReportMaker", recursive=TRUE, include.dirs=TRUE, full.names=TRUE)
+if( length(codeDir)!=1 ) codeDir <- "~/geneTherapyPatientReportMaker"
 stopifnot(file.exists(file.path(codeDir, "GTSPreport.css")))
 stopifnot(file.exists(file.path(codeDir, "GTSPreport.Rmd")))
 
@@ -93,20 +96,22 @@ standardizedReplicatedSites$posid <- paste0(seqnames(standardizedReplicatedSites
                                             strand(standardizedReplicatedSites),
                                             start(flank(standardizedReplicatedSites, -1, start=T)))
 standardizedReplicatedSites <- split(standardizedReplicatedSites,
-                                    standardizedReplicatedSites$GTSP)
+                                     standardizedReplicatedSites$GTSP)
 standardizedReplicatedSites <- lapply(standardizedReplicatedSites, function(x){
-  x$replicate <- as.integer(as.factor(x$sampleName))
-  x$sampleName <- NULL
-  x
+    x$replicate <- as.integer(as.factor(x$sampleName))
+    x$sampleName <- NULL
+    x
 })
 
 #this is slow (~1.5min/sample), but would be easy to parallelize - just be
 #careful about memory consumption!  sonic abundance could get 20GB+ per thread
+standardizedReplicatedSites <- standardizedReplicatedSites[sapply(standardizedReplicatedSites, length)>0]
+
 standardizedDereplicatedSites <- lapply(standardizedReplicatedSites, function(sites){
-  res <- getEstimatedAbundance(sites)
-  res$GTSP <- sites[1]$GTSP
-  res$posid <- paste0(seqnames(res), strand(res), start(flank(res, -1, start=T)))
-  res
+    res <- getEstimatedAbundance(sites)
+    res$GTSP <- sites[1]$GTSP
+    res$posid <- paste0(seqnames(res), strand(res), start(flank(res, -1, start=T)))
+    res
 })
 
 standardizedReplicatedSites <- prepSiteList(standardizedReplicatedSites)
