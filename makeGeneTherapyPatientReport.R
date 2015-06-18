@@ -1,5 +1,17 @@
 options(stringsAsFactors = FALSE)
 
+#### INPUTS: csv file/table GTSP to sampleName ####
+csvfile <- "sampleName_GTSP.csv"
+args <- commandArgs(trailingOnly=TRUE)
+if( length(args)==1 ) csvfile <- args[1]
+if( !file.exists(csvfile) ) stop(csvfile, "not found")
+
+codeDir <- dirname(sub("--file=", "", grep("--file=", commandArgs(trailingOnly=FALSE), value=T)))
+if( length(codeDir)!=1 ) codeDir <- list.files(path="~", pattern="geneTherapyPatientReportMaker", recursive=TRUE, include.dirs=TRUE, full.names=TRUE)
+if( length(codeDir)!=1 ) codeDir <- "~/geneTherapyPatientReportMaker"
+stopifnot(file.exists(file.path(codeDir, "GTSPreport.css")))
+stopifnot(file.exists(file.path(codeDir, "GTSPreport.Rmd")))
+
 #### load up require packages + objects #### 
 library("RMySQL") #also loads DBI
 library("markdown")
@@ -12,12 +24,6 @@ library("reshape2")
 library("scales")
 library("dplyr")
 library("intSiteRetriever") # installed from github
-
-codeDir <- dirname(sub("--file=", "", grep("--file=", commandArgs(trailingOnly=FALSE), value=T)))
-if( length(codeDir)!=1 ) codeDir <- list.files(path="~", pattern="geneTherapyPatientReportMaker", recursive=TRUE, include.dirs=TRUE, full.names=TRUE)
-if( length(codeDir)!=1 ) codeDir <- "~/geneTherapyPatientReportMaker"
-stopifnot(file.exists(file.path(codeDir, "GTSPreport.css")))
-stopifnot(file.exists(file.path(codeDir, "GTSPreport.Rmd")))
 
 source(file.path(codeDir, "utilities.R"))
 source(file.path(codeDir, "specimen_management.R"))
@@ -35,18 +41,12 @@ stopifnot( system(cmd)==0 )
 source("CancerGeneList/onco_genes.R")
 
 
-#### INPUTS: csv file/table GTSP to sampleName ####
-csvfile <- "sampleName_GTSP.csv"
-args <- commandArgs(trailingOnly=TRUE)
-if( length(args)==1 ) csvfile <- args[1]
-message("Reading csv from ", csvfile)
-stopifnot(file.exists(csvfile))
-
+#### load datasets and process them before knit #### 
+message("\nReading csv from ", csvfile)
 sampleName_GTSP <- read.csv(csvfile)
-message("Generating report from the following sets")
+stopifnot(all(c("sampleName", "GTSP") %in% colnames(sampleName_GTSP)))
+message("\nGenerating report from the following sets")
 print(sampleName_GTSP)
-
-GTSPs <- unique(sampleName_GTSP$GTSP)
 
 junk <- sapply(dbListConnections(MySQL()), dbDisconnect)
 dbConn <- dbConnect(MySQL(), group="intSitesDev237")
@@ -239,5 +239,5 @@ unlink("figureByPatient", force=TRUE, recursive=TRUE)
 unlink("CancerGeneList", force=TRUE, recursive=TRUE)
 unlink(mdfile, force=TRUE, recursive=TRUE)
 
-message("Report ", htmlfile, " is generated from ", csvfile)
+message("\nReport ", htmlfile, " is generated from ", csvfile)
 
