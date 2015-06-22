@@ -14,6 +14,8 @@ stopifnot(file.exists(file.path(codeDir, "GTSPreport.Rmd")))
 
 #### load up require packages + objects #### 
 library("RMySQL") #also loads DBI
+library("plyr")
+library("dplyr")
 library("markdown")
 library("knitr")
 library("hiAnnotator")
@@ -22,7 +24,6 @@ library("reldist")
 library("sonicLength")
 library("reshape2")
 library("scales")
-library("dplyr")
 library("intSiteRetriever") 
 ## intSiteRetriever package was installed from github as follows
 ## git clone https://github.com/BushmanLab/intSiteRetriever.git

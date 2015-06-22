@@ -1,4 +1,4 @@
-library(stringr)
+stopifnot( require(stringr) )
 
 sanitize <- function(string) {
   result <- gsub("&", "\\&", string, fixed = TRUE)
