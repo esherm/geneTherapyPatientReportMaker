@@ -23,7 +23,14 @@ library("sonicLength")
 library("reshape2")
 library("scales")
 library("dplyr")
-library("intSiteRetriever") # installed from github
+library("intSiteRetriever") 
+## intSiteRetriever package was installed from github as follows
+## git clone https://github.com/BushmanLab/intSiteRetriever.git
+## cd intSiteRetriever
+## git checkout remove_multihitClusterID
+## R
+## devtools::document()
+## devtools::install()
 
 source(file.path(codeDir, "utilities.R"))
 source(file.path(codeDir, "specimen_management.R"))
