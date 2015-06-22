@@ -1,25 +1,60 @@
-# geneTherapyPatientReportMaker
+#### geneTherapyPatientReportMaker
 For a specific patient, report integration near oncogenes and potentially expanded clones across cell types and multiple time points
+	
+#### Input
+A csv file such as `sampleName_GTSP.csv` to describe the replicates and the samples.
+```
+head sampleName_GTSP.csv
 
-# Input
+sampleName,GTSP
+GTSP0308-1,GTSP0308
+GTSP0308-2,GTSP0308
+GTSP0308-3,GTSP0308
+GTSP0308-4,GTSP0308
+GTSP0309-1,GTSP0309
+GTSP0309-2,GTSP0309
 
-Report is done for individual patient for multiple timepoints and cell types, each corresponding to unique
-GTSP. For each sample multiple preps can be used. 
+#or 
+Rscript path/to/check_patient_GTSP.R pFR03
 
-Sample name corresponds to name used in integration site calling DB.
-
-Format is (tab-separated):
-```{bash}
-GTSP    sampleName
+sampleName,GTSP,patient
+GTSP0308-1,GTSP0308,pFR03
+GTSP0308-2,GTSP0308,pFR03
+GTSP0308-3,GTSP0308,pFR03
 ```
 
-# Checked Assumptions
-* The patient report is done for a single patient.
-* All sites should be computed based on one reference genome.
-* All sample names and GTSPs should exist in intSite and specimen managemnet databases.
+* only `sampleName`, `GTSP` columns are necessary and the rest are ignored,
+* the `GTSPxxxx` names must correspond to the same patient,
+* the `GTSPxxxx` names must be in the `specimen_management.gtsp` database,
+* all sites should be computed based on one reference genome.
+  
+#### Output
+`$trial.$patient.$today.html`
 
+#### Code example
+- 1. `check_patient_gtsp.R`: get available datasets, generate a csv file for a patient 
+```
+ Rscript path/to/check_patient_GTSP.R                    #get all processed samples
+ Rscript path/to/check_patient_GTSP.R pFR03              #get data sets for patient pFR03 and output to csv format
+ Rscript path/to/check_patient_GTSP.R pFR03 > pFR03.csv  #get data sets for patient pFR03 and output to tmp.csv
+```
 
-# Database connfig file location
+- 2. `makeGeneTherapyPatientReport.R`: generate report for a patient from the csv file 
+```
+Rscript makeGeneTherapyPatientReport.R                     #read in sampleName_GTSP.csv by default
+Rscript path/to/makeGeneTherapyPatientReport.R pFR03.csv   #generated above
+```
+
+- 3. `check_gtsp_patient.R`: get trial and patient information for the GTSPxxxx folders
+```
+Rscript path/to/makeGeneTherapyPatientReport.R                         #check current folder
+Rscript path/to/makeGeneTherapyPatientReport.R  ~/Frances/run20150505  #check a run folder
+```
+
+#### Note
+Do NOT run multiple instances within the same folder
+
+#### Database connfig file location
 
 config file should be in home directory and called .my.cnf,
 e.g. ~/.my.cnf
@@ -35,7 +70,7 @@ port=3309
 database=intsitesdev
 ```
 
-# Dependencies
+#### Dependencies
 
 intSiteRetriever : https://github.com/esherm/intSiteRetriever 
 (at present get the project in current folder:
@@ -51,7 +86,7 @@ Cancer Gene list:
 git clone https://github.com/anatolydryga/CancerGeneList.git
 ```
 
-# Testing
+#### Testing
 
 Run in the R console:
 

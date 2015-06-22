@@ -73,7 +73,7 @@ When multiple time points are available, it is of interest to track the behavior
 ```{r ParallelLines, fig.width=10, fig.height=10}
 if (has_longitudinal_data) {
   ggplot(longitudinal, aes(x=Timepoint, y=estAbundProp)) +
-    geom_point(size=.5) +
+    geom_point(size=3) +
     geom_line(aes(colour=posid, group=posid), alpha=.5, show_guide=FALSE) +
     facet_wrap(~CellType, scales="free") +
     ggtitle(paste("Patient:", patient, "Trial:", trial)) + xlab("Timepoint") + 
@@ -107,30 +107,36 @@ badActorOut <- lapply(badActors, function(badActor){
 ```
 `r knit(text = unlist(badActorOut))`
 
-## Do any clones account for greater than 20% of the total?
-  
-For some trials, a reporting criteria is whether any cell clones expand to account for greater than 20% of all clones. This is summarized below for subject `r patient`. Abundance is estimated using the SonicLength method. Data such as this must, of course, be interpreted in the context of results from other assays.
+`r percent_cutoff <- 0.2`  
+## Do any clones account for greater than `r percent(percent_cutoff)` of the total?
+For some trials, a reporting criteria is whether any cell clones expand to account for greater than `r percent(percent_cutoff)` of all clones. This is summarized below for subject `r patient`. Abundance is estimated using the SonicLength method. Data such as this must, of course, be interpreted in the context of results from other assays.
 
 ```{r TwentyPercSites, results="asis"}
-### Sites >20% of data by Alias ###
-knit_exit()
-rows <- sites.qc$estAbundance1Prop >= .2
-
-if(any(rows)) {
-  test2 <- arrange(unique(sites.qc[rows,c("patient", "timepoint", "celltype", "posID",
-                                          "estAbundance1", "estAbundance1Prop",
-                                          "estAbundance1Rank", "geneType")]),
-                   patient,timepoint,celltype,plyr::desc(estAbundance1Prop),posID)
-  tps <- sortTimePoints(test2$timepoint)  
-  test2$timepoint <- factor(test2$timepoint, levels=names(tps))
-  test2 <- arrange(test2, patient,timepoint,celltype,estAbundance1Rank)  
-  names(test2) <- col.keys[names(test2)]
-  test2$RelativeAbundance <- percent(test2$RelativeAbundance)
-  kable(test2, caption="Sites >20% of the Total", format="html", row.names=FALSE)  
-} else { 
-  cat("<strong>No sites found in this patient which are greater than 20% of the total data.</strong>")        
+rows <- standardizedDereplicatedSites$estAbundProp >= percent_cutoff
+if( any(rows) ) {
+	df <- as.data.frame(standardizedDereplicatedSites[rows,])
+	df$Timepoint <- sortFactorTimepoints(df$Timepoint)
+    df <- arrange(df, Timepoint, CellType, estAbund)
+	df$position <- ifelse(df$strand=="+", df$start, df$end)
+	df$estAbundProp <- percent(df$estAbundProp)
+	df <- subset(df, select=c("seqnames", "strand", "position", "GTSP", "estAbund", "estAbundProp", "estAbundRank", "Timepoint", "CellType", "nearest_refSeq_geneDist", "nearest_refSeq_gene", "nearest_refSeq_geneOrt", "X5pNrstOncoDist", "X5pNrstOnco", "X5pNrstOncoOrt"))
+	colnames(df)[ colnames(df)=="seqnames" ]="Chr"
+	colnames(df)[ colnames(df)=="estAbund" ]="SonicAbundance"
+	colnames(df)[ colnames(df)=="estAbundProp" ]="Fraction"
+	colnames(df)[ colnames(df)=="estAbundRank" ]="Rank"
+	df$nearest_gene=paste0(df$nearest_refSeq_gene, " (", df$nearest_refSeq_geneOrt, ")")
+	df$nearest_Gene_Strand_Distance=paste0(df$nearest_refSeq_gene, " (", df$nearest_refSeq_geneOrt, ") ", df$nearest_refSeq_geneDist)
+	df$nearest_OncoGene_Strand_Distance=paste0(df$X5pNrstOnco, " (", df$X5pNrstOncoOrt, ") ", df$X5pNrstOncoDist)
+	needed <- c("Chr", "strand", "position", "GTSP", "SonicAbundance", "Fraction", "Rank", "Timepoint",	"CellType", "nearest_Gene_Strand_Distance", "nearest_OncoGene_Strand_Distance")
+	df <- subset(df, select=needed)
+	df <- arrange(df, desc(Fraction))
+kable(df, caption=sprintf("Sites >%s of the Total", percent(percent_cutoff)), format="html", 		row.names=FALSE)
+} else {
+	cat(sprintf("<strong>No sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
 }
+knit_exit()
 ```
+
 
 ### Do any multihit account for greater than 20% of the total?
 
