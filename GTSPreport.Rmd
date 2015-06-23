@@ -153,22 +153,23 @@ plotWordCloud(df.wordlist[[i]],
               rot.per = 0, 
               colors=c(colSets("Set1")[-6],colSets("Paired")))
 )
-knit_exit()
 ```
 ```{r worldbubble_Table, results='asis'}
 df.tab <- data.frame(
-   name=names(df.wordlist),
-   file=file.path("figureByPatient", sprintf("wordlelist-%i.png", seq(df.wordlist))))
-df.tab$isthere <- file.exists(df.tab$file)
-plotFiles <- list.files(path="figureByPatient", 
-                        pattern=paste0(patternSearch,".*.png"), full.names=TRUE)
-plotFiles <- paste0("<img src='",plotFiles,"' alt='barPlots'>")
-plotFiles <- matrix(plotFiles, ncol=2)
-dups <- names(which(table(plotFiles)>1))
+	name=names(df.wordlist),
+	pngfile=file.path("figureByPatient", sprintf("wordlelist-%i.png", seq(df.wordlist))),
+   stringsAsFactors=FALSE)
+df.tab$html <- paste0("<img src='",df.tab$pngfile,"' alt='wordBubble'>")
+df.tab$isthere <- file.exists(df.tab$pngfile)
+if(any(!df.tab$isthere)) message("The word bubbles are not generated for the following time point and cell types:\n", paste(df.tab$name[!df.tab$isthere], collapse="\n") )
+df.tab <- subset(df.tab, isthere)
+df.kable <- matrix(df.tab$html, ncol=2)
+dups <- names(which(table(df.kable)>1))
 if(length(dups)>0) {
-  plotFiles[tail(which(plotFiles==dups),1)] <- ""
+  df.kable[tail(which(df.kable==dups),1)] <- ""
 }
-kable(plotFiles, row.names=FALSE,format="html")
+kable(df.kable, row.names=FALSE,format="html", escape=FALSE)
+knit_exit()
 ```
 
 ### Do any multihit account for greater than 20% of the total?
