@@ -159,7 +159,9 @@ df.tab <- data.frame(
 	name=names(df.wordlist),
 	pngfile=file.path("figureByPatient", sprintf("wordlelist-%i.png", seq(df.wordlist))),
    stringsAsFactors=FALSE)
-df.tab$html <- paste0("<img src='",df.tab$pngfile,"' alt='wordBubble'>")
+df.tab$html <- sprintf("<img src='%s' alt='wordBubble'> <br />%s",
+	df.tab$pngfile,
+	gsub('.', ' ', df.tab$name, fixed=TRUE) )
 df.tab$isthere <- file.exists(df.tab$pngfile)
 if(any(!df.tab$isthere)) message("The word bubbles are not generated for the following time point and cell types:\n", paste(df.tab$name[!df.tab$isthere], collapse="\n") )
 df.tab <- subset(df.tab, isthere)
