@@ -226,7 +226,7 @@ popSummaryTable <- popSummaryTable[,cols]
 
 timepointPopulationInfo <- melt(timepointPopulationInfo, "group")
 
-save.image("debug.RData")
+##save.image("debug.RData")
 ##end setting variables for markdown report
 
 #### begin generating markdown ####
