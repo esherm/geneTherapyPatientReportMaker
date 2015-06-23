@@ -134,9 +134,42 @@ kable(df, caption=sprintf("Sites >%s of the Total", percent(percent_cutoff)), fo
 } else {
 	cat(sprintf("<strong>No sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
 }
-knit_exit()
 ```
 
+## What is the most frequently occuring gene types in subject `r patient`?
+Each integration site is named by the closest gene.
+```{r wordlelist, fig.width=5, fig.height=5, fig.show='hide'}
+if(! require('PubMedWordcloud')) stop("Need PubMedWordcloud package")
+df <- as.data.frame(standardizedDereplicatedSites)
+dftmp <- df %>%
+    group_by(CellType, Timepoint) %>%
+    select(word=nearest_refSeq_gene, freq=estAbund) 
+df.wordlist <- dlply(dftmp, .(Timepoint, CellType))
+max_num_words=100
+null <- sapply(seq(df.wordlist), function(i) 
+plotWordCloud(df.wordlist[[i]],
+              scale=c(3,0.5),
+              min.freq=1, max.words=max_num_words, 
+              rot.per = 0, 
+              colors=c(colSets("Set1")[-6],colSets("Paired")))
+)
+knit_exit()
+```
+```{r worldbubble_Table, results='asis'}
+df.tab <- data.frame(
+   name=names(df.wordlist),
+   file=file.path("figureByPatient", sprintf("wordlelist-%i.png", seq(df.wordlist))))
+df.tab$isthere <- file.exists(df.tab$file)
+plotFiles <- list.files(path="figureByPatient", 
+                        pattern=paste0(patternSearch,".*.png"), full.names=TRUE)
+plotFiles <- paste0("<img src='",plotFiles,"' alt='barPlots'>")
+plotFiles <- matrix(plotFiles, ncol=2)
+dups <- names(which(table(plotFiles)>1))
+if(length(dups)>0) {
+  plotFiles[tail(which(plotFiles==dups),1)] <- ""
+}
+kable(plotFiles, row.names=FALSE,format="html")
+```
 
 ### Do any multihit account for greater than 20% of the total?
 
