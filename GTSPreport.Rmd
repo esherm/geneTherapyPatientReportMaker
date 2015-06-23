@@ -138,13 +138,15 @@ kable(df, caption=sprintf("Sites >%s of the Total", percent(percent_cutoff)), fo
 
 ## What is the most frequently occuring gene types in subject `r patient`?
 Each integration site is named by the closest gene.
-```{r wordlelist, fig.width=5, fig.height=5, fig.show='hide'}
+```{r wordlelist, fig.width=4, fig.height=4, fig.show='hide'}
 if(! require('PubMedWordcloud')) stop("Need PubMedWordcloud package")
 df <- as.data.frame(standardizedDereplicatedSites)
-dftmp <- df %>%
-    group_by(CellType, Timepoint) %>%
-    select(word=nearest_refSeq_gene, freq=estAbund) 
-df.wordlist <- dlply(dftmp, .(Timepoint, CellType))
+df <- data.frame(
+	Timepoint=df$Timepoint,
+    CellType=df$CellType,
+	word=df$nearest_refSeq_gene,
+    freq=df$estAbund)
+df.wordlist <- split(df, f=paste(df$Timepoint, df$CellType))
 max_num_words=100
 null <- sapply(seq(df.wordlist), function(i) 
 plotWordCloud(df.wordlist[[i]],
@@ -165,12 +167,15 @@ df.tab$html <- sprintf("<img src='%s' alt='wordBubble'> <br />%s",
 df.tab$isthere <- file.exists(df.tab$pngfile)
 if(any(!df.tab$isthere)) message("The word bubbles are not generated for the following time point and cell types:\n", paste(df.tab$name[!df.tab$isthere], collapse="\n") )
 df.tab <- subset(df.tab, isthere)
-df.kable <- matrix(df.tab$html, ncol=2)
+df.kable <- matrix(df.tab$html, byrow=TRUE, ncol=3)
 dups <- names(which(table(df.kable)>1))
 if(length(dups)>0) {
   df.kable[tail(which(df.kable==dups),1)] <- ""
 }
 kable(df.kable, row.names=FALSE,format="html", escape=FALSE)
+```
+
+```{r knitexit}
 knit_exit()
 ```
 
