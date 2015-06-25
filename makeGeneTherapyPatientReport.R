@@ -226,7 +226,33 @@ popSummaryTable <- popSummaryTable[,cols]
 
 timepointPopulationInfo <- melt(timepointPopulationInfo, "group")
 
-##save.image("debug.RData")
+sites.multi <- merge( suppressWarnings(getMultihitLengths(sampleName_GTSP$sampleName, dbConn)), sampleName_GTSP)
+
+#==================Get abundance for multihit events=====================
+message("Fetching multihit sites and estimating abundance")
+sites.multi <- merge( suppressWarnings(getMultihitLengths(sampleName_GTSP$sampleName, dbConn)), sampleName_GTSP)
+if( nrow(sites.multi) > 0 ) {
+    sites.multi <- sites.multi %>%
+    group_by(multihitID) %>%
+    mutate(replicate=as.integer(as.factor(sampleName)))
+    
+    dfr <- data.frame(ID=sites.multi$multihitID,
+                      fragLength=sites.multi$length,
+                      replicate=sites.multi$replicate)
+    
+    if(length(unique(dfr$replicate))==1){
+        estimatedAbundances <- estAbund(dfr$ID, dfr$fragLength)
+    }else{
+        estimatedAbundances <- estAbund(dfr$ID, dfr$fragLength, dfr$replicate)
+    }
+    
+    sites.multi <- subset(sites.multi, !duplicated(multihitID))
+    sites.multi$estAbund <- round(estimatedAbundances$theta[as.character(sites.multi$multihitID)])
+    
+    sites.multi <- merge(sites.multi, sets, by="GTSP")
+}
+
+save.image("debug.RData")
 ##end setting variables for markdown report
 
 #### begin generating markdown ####
