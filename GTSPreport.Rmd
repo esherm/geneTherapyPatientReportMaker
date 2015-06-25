@@ -141,23 +141,33 @@ kable(df, caption=sprintf("Sites >%s of the Total", percent(percent_cutoff)), fo
 Up until now, all the analysis has been looking at integration sites that can be uniquely mapped. But it is also helpful to look at reads finding multiple equally good alignments in the genome which can be reffered to as 'Multihits'. If an integration site occurred within a repeat element (i.e. Alus, LINE, SINE, etc), then it might be helpful to access those sites for potential detrimental effects. These collection of sequences are analyzed separately due to their ambiguity. To make some sense of these multihits, we bin any sequence(s) which share 1 or more genomic locations hence forming psuedo-collections which can be reffered to as OTUs (operation taxonomic units). Once the OTUs are formed, we compare breakpoints of unique sites and multihits. The idea is to see if there are any multihits which higher in abundance than a unique site in a given sample. Below is a table similar to the one shown previously except we show any events instead of genomic locations which might account for greater than `r percent(percent_cutoff)` of all clones in the data.
 
 ```{r TwentyPercSitesMulti, results="asis"}
-if( nrow(sites.multi) < 1 ) { cat("None found") } else { 
+if( nrow(sites.multi) < 1 ) {
+	cat(sprintf("<strong>No multihits sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
+} else { 
 total.abundance <- sum(mcols(standardizedDereplicatedSites)$estAbund,
 	sites.multi$estAbund)
 
 is.multi.expanded <- sites.multi$estAbund > total.abundance*percent_cutoff
-if( !any(is.multi.expanded) ) { cat("None found") } else {
+
+##tmp <- sites.multi %>% group_by(Patient, Timepoint, CellType) %>%
+##	mutate(istop=(Rank==min(Rank)))
+##is.multi.expanded <- tmp$istop
+					
+if( !any(is.multi.expanded) ) { 
+	cat(sprintf("<strong>No multihits sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
+} else {
 	df <- subset(sites.multi, is.multi.expanded)
-    df <- df %>% group_by(Patient, Timepoint, CellType) %>% mutate(Rank=estAbund)
-	df <- data.frame(Timepoint=df$Timepoint,
-		CellType=df$CellType,
+	df <- data.frame(
+		##multihitEvent=paste0("multihit", df$multihitID),
+		multihitEvent="multihit",
 		GTSP=df$GTSP,
 		SonicAbundance=df$estAbund,
 		Fraction=df$estAbund/total.abundance,
-		multihitID=df$multihitID,
-		Rank=df$Rank
+		Rank=df$Rank,
+		Timepoint=df$Timepoint,
+		CellType=df$CellType
 	)			
-	kable(df, caption=sprintf("Multihits Sites >%s of the Total", percent(percent_cutoff)), format="html", 		row.names=FALSE)
+	kable(df, caption=sprintf("Multihits Sites >%s of the Total", percent(percent_cutoff)), format="html", row.names=FALSE)
 
 	}
 }

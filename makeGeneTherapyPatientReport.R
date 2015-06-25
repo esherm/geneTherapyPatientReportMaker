@@ -87,6 +87,7 @@ stopifnot(length(unique(refGenomes$refGenome))==1)
 freeze <- refGenomes[1, "refGenome"]
 
 ##==========GET AND PERFORM BASIC DEREPLICATION/SONICABUND ON SITES=============
+message("Fetching unique sites and estimating abundance")
 junk <- sapply(dbListConnections(MySQL()), dbDisconnect)
 dbConn <- dbConnect(MySQL(), group="intSitesDev237")
 sites <- merge(getUniquePCRbreaks(sampleName_GTSP$sampleName, dbConn), sampleName_GTSP)
@@ -226,10 +227,10 @@ popSummaryTable <- popSummaryTable[,cols]
 
 timepointPopulationInfo <- melt(timepointPopulationInfo, "group")
 
-sites.multi <- merge( suppressWarnings(getMultihitLengths(sampleName_GTSP$sampleName, dbConn)), sampleName_GTSP)
-
 #==================Get abundance for multihit events=====================
 message("Fetching multihit sites and estimating abundance")
+junk <- sapply(dbListConnections(MySQL()), dbDisconnect)
+dbConn <- dbConnect(MySQL(), group="intSitesDev237")
 sites.multi <- merge( suppressWarnings(getMultihitLengths(sampleName_GTSP$sampleName, dbConn)), sampleName_GTSP)
 if( nrow(sites.multi) > 0 ) {
     sites.multi <- sites.multi %>%
@@ -250,6 +251,9 @@ if( nrow(sites.multi) > 0 ) {
     sites.multi$estAbund <- round(estimatedAbundances$theta[as.character(sites.multi$multihitID)])
     
     sites.multi <- merge(sites.multi, sets, by="GTSP")
+    sites.multi <- sites.multi %>% group_by(Patient, Timepoint, CellType) %>%
+    mutate(Rank=rank(-estAbund, ties.method="max"))
+
 }
 
 save.image("debug.RData")
