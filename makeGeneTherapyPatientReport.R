@@ -18,6 +18,7 @@ library("plyr")
 library("dplyr")
 library("markdown")
 library("knitr")
+library("PubMedWordcloud")
 library("hiAnnotator")
 library("ggplot2")
 library("reldist")
@@ -255,6 +256,10 @@ if( nrow(sites.multi) > 0 ) {
     mutate(Rank=rank(-estAbund, ties.method="max"))
 
 }
+
+
+write.csv(as.data.frame(standardizedDereplicatedSites),
+          file=paste(trial, patient, "uniquehit.csv", sep="."))
 
 save.image("debug.RData")
 ##end setting variables for markdown report
