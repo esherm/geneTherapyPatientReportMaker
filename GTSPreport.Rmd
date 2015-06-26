@@ -202,7 +202,10 @@ df.tab$html <- sprintf("<img src='%s' alt='wordBubble'> <br />%s",
 	df.tab$pngfile,
 	gsub('.', ' ', df.tab$name, fixed=TRUE) )
 df.tab$isthere <- file.exists(df.tab$pngfile)
-if(any(!df.tab$isthere)) message("The word bubbles are not generated for the following time point and cell types:\n", paste(df.tab$name[!df.tab$isthere], collapse="\n") )
+df.tab$isthere <- TRUE
+if(any(!df.tab$isthere)) {
+message("The word bubbles are not generated for the following time point and cell types:\n", paste(df.tab$name[!df.tab$isthere], collapse="\n") )
+}
 df.tab <- subset(df.tab, isthere)
 df.kable <- matrix(df.tab$html, byrow=TRUE, ncol=3)
 dups <- names(which(table(df.kable)>1))
