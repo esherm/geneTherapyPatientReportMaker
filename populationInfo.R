@@ -44,9 +44,9 @@ getPopulationInfo <- function(replicated, dereplicated, splitBy){
     #can iterate through standardizedReplicatedSites and standardizedDereplicatedSites using GTSP#
     replicatedSites <- replicated[[name]]
     dereplicatedSites <- dereplicated[[name]]
-
+    
     data.frame("group"=name,
-               "S.chao1"=calculateChao(replicatedSites, dereplicatedSites),
+               ##"S.chao1"=calculateChao(replicatedSites, dereplicatedSites), 
                "Gini"=calculateGini(dereplicatedSites),
                "Shannon"=calculateShannon(dereplicatedSites))
   })

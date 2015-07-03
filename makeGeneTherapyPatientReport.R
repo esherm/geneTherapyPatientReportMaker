@@ -220,12 +220,18 @@ cols <- c("Trial", "GTSP", "Patient", "Timepoint", "CellType",
 summaryTable <- arrange(sets,Timepoint,CellType)
 summaryTable <- summaryTable[,cols]
 
+##cols <- c("Patient", "Timepoint", "CellType", "UniqueSites",
+##          "Replicates", "FragMethod", "VCN", "S.chao1", "Gini", "Shannon")
 cols <- c("Patient", "Timepoint", "CellType", "UniqueSites",
-          "Replicates", "FragMethod", "VCN", "S.chao1", "Gini", "Shannon")
+          "Replicates", "FragMethod", "VCN", "Gini", "Shannon")
 popSummaryTable <- merge(sets,  populationInfo, by.x="GTSP", by.y="group")
 popSummaryTable <- arrange(popSummaryTable,Timepoint,CellType)
-popSummaryTable <- popSummaryTable[,cols]
+##popSummaryTable <- popSummaryTable[,cols]
 
+cols <- c("Trial", "GTSP", "Replicates", "Patient", "Timepoint", "CellType", 
+          "TotalReads", "UniqueSites", "FragMethod", "VCN", "Gini", "Shannon")
+summaryTable <- popSummaryTable[,cols]
+    
 timepointPopulationInfo <- melt(timepointPopulationInfo, "group")
 
 #==================Get abundance for multihit events=====================
@@ -261,7 +267,7 @@ if( nrow(sites.multi) > 0 ) {
 write.csv(as.data.frame(standardizedDereplicatedSites),
           file=paste(trial, patient, "uniquehit.csv", sep="."))
 
-save.image("debug.RData")
+##save.image("debug.RData")
 ##end setting variables for markdown report
 
 #### begin generating markdown ####
