@@ -5,9 +5,10 @@ getEstimatedAbundance <- function(sites, use.sonicLength=FALSE){
       if(is.null(replicate)){replicate <- 1}  #Need for downstream workflow
       dfr <- data.frame(location = location, fragLen = fragLen, 
                       replicate = replicate)
-      dfr <- distinct(dfr)
-      site.list <- split(dfr, dfr$location)
-      theta <- sapply(site.list, function(x){nrow(x)})
+      dfr_dist <- distinct(dfr)
+      site_list <- split(dfr_dist, dfr_dist$location)
+      theta <- sapply(site_list, function(x){nrow(x)})
+      theta <- theta[unique(dfr$location)]
       list(theta=theta)
     }
     estAbund <- estAbund.uniqueFragLen
