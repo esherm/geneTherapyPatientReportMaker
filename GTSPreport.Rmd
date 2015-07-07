@@ -2,8 +2,17 @@
 `r format(Sys.Date(), "%b %d %Y")`
 
 ```{r setup,echo=FALSE}
-opts_chunk$set(fig.path='figureByPatient/', fig.align='left', comment="",
-               echo=FALSE, warning=FALSE, error=TRUE, message=FALSE, cache=F, results="asis")
+library(knitr)
+opts_chunk$set(
+  fig.path='figureByPatient/', 
+  fig.align='left', 
+  comment="",
+  echo=FALSE, 
+  warning=FALSE, 
+  error=TRUE, 
+  message=FALSE, 
+  cache=T, 
+  results="asis")
 options(knitr.table.format = 'html')
 ```
 
