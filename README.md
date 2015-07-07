@@ -43,9 +43,10 @@ GTSP0308-3,GTSP0308,pFR03
 ```
 Rscript makeGeneTherapyPatientReport.R                     #read in sampleName_GTSP.csv by default
 Rscript path/to/makeGeneTherapyPatientReport.R pFR03.csv   #generated above
+Rscript path/to/makeGeneTherapyPatientReport.R pFR03.csv -s #determine abundance by fragment length only
 ```
 
-- 3. `check_gtsp_patient.R`: get trial and patient information for the GTSPxxxx folders
+- 3 `check_gtsp_patient.R`: get trial and patient information for the GTSPxxxx folders
 ```
 Rscript path/to/makeGeneTherapyPatientReport.R                         #check current folder
 Rscript path/to/makeGeneTherapyPatientReport.R  ~/Frances/run20150505  #check a run folder
