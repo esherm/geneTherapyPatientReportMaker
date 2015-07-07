@@ -297,7 +297,7 @@ markdownToHTML(mdfile, htmlfile, extensions=c('tables'),
                stylesheet=file.path(codeDir, "GTSPreport.css") )
 
 #### clean up ####
-unlink("figureByPatient", force=TRUE, recursive=TRUE)
+#unlink("figureByPatient", force=TRUE, recursive=TRUE)
 unlink("CancerGeneList", force=TRUE, recursive=TRUE)
 unlink(mdfile, force=TRUE, recursive=TRUE)
 
