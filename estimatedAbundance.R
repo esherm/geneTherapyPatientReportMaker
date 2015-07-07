@@ -26,3 +26,44 @@ getEstimatedAbundance <- function(sites){
   
   dereplicatedSites
 }
+
+
+getEstimatedAbundance.chris <- function(sites){
+  #standardized input is converted to df and pcr dereplicated
+  dfr <- as.data.frame(sites)
+  dfr <- distinct(dfr)
+  
+  #split based on unique start position
+  sites.list <- split(dfr, dfr$posid)
+  
+  #collect relevant info for abundance and reconstruction
+  unique.sites.df <- do.call(rbind, lapply(sites.list, function(x){
+    intSite <- ifelse(x$strand[1] == "+", x$start[1], x$end[1])
+    breakpoint <- ifelse(x$strand[1] == "+", max(x$end), min(x$start))
+    df <- data.frame(seqnames = x$seqnames[1], 
+                     start = ifelse(x$strand[1] == "+", intSite, breakpoint), 
+                     end = ifelse(x$strand[1] == "+", breakpoint, intSite), 
+                     strand = x$strand[1], 
+                     GTSP = x$GTSP[1], 
+                     posid = x$posid[1], 
+                     estAbund = nrow(x))
+  }))
+  row.names(unique.sites.df) <- NULL
+  
+  ranges <- IRanges(start = unique.sites.df$start, end = unique.sites.df$end)
+  
+  unique.sites <- GRanges(
+    seqnames = unique.sites.df$seqnames,
+    ranges = ranges,
+    strand = unique.sites.df$strand,
+    seqinfo = seqinfo(sites),
+    GTSP = unique.sites.df$GTSP,
+    posid = unique.sites.df$posid,
+    estAbund = unique.sites.df$estAbund)
+  
+  #add proportion and rank to dereplicated unique grange
+  unique.sites$estAbundProp <- unique.sites$estAbund/sum(unique.sites$estAbund)
+  unique.sites$estAbundRank <- rank(-1*unique.sites$estAbundProp, ties.method="max")
+  
+  unique.sites
+}
