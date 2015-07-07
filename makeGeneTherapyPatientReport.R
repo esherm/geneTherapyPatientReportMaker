@@ -3,7 +3,19 @@ options(stringsAsFactors = FALSE)
 #### INPUTS: csv file/table GTSP to sampleName ####
 csvfile <- "sampleName_GTSP.csv"
 args <- commandArgs(trailingOnly=TRUE)
-if( length(args)==1 ) csvfile <- args[1]
+
+use.sonicLength <- FALSE
+
+if( length(args)==1 ) {
+  csvfile <- args[1]
+}
+if( length(args)==2 & args[2] == "-s"){
+  csvfile <- args[1]
+  use.sonicLength <- TRUE
+}else if(length(args)==2 & args[2] != "-s"){
+  message("Incorrect flags.")
+  stop()
+}
 if( !file.exists(csvfile) ) stop(csvfile, "not found")
 
 codeDir <- dirname(sub("--file=", "", grep("--file=", commandArgs(trailingOnly=FALSE), value=T)))
@@ -118,7 +130,7 @@ standardizedReplicatedSites <- lapply(standardizedReplicatedSites, function(x){
 standardizedReplicatedSites <- standardizedReplicatedSites[sapply(standardizedReplicatedSites, length)>0]
 
 standardizedDereplicatedSites <- lapply(standardizedReplicatedSites, function(sites){
-    res <- getEstimatedAbundance(sites)
+    res <- getEstimatedAbundance(sites, use.sonicLength = use.sonicLength)
     res$GTSP <- sites[1]$GTSP
     res$posid <- paste0(seqnames(res), strand(res), start(flank(res, -1, start=T)))
     res

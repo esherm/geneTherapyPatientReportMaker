@@ -1,5 +1,18 @@
-getEstimatedAbundance <- function(sites){
+getEstimatedAbundance <- function(sites, use.sonicLength=FALSE){
   #inputs at this point have been standardized, so it's ok to use posid as PK
+  if(use.sonicLength){
+    estAbund.uniqueFragLen <- function(location, fragLen, replicate=NULL){
+      if(is.null(replicate)){replicate <- 1}  #Need for downstream workflow
+      dfr <- data.frame(location = location, fragLen = fragLen, 
+                      replicate = replicate)
+      dfr <- distinct(dfr)
+      site.list <- split(dfr, dfr$location)
+      theta <- sapply(site.list, function(x){nrow(x)})
+      list(theta=theta)
+    }
+    estAbund <- estAbund.uniqueFragLen
+  }
+  
   sites$posid = paste0(seqnames(sites), strand(sites), start(flank(sites, -1, start=T)))
   dfr <- data.frame("ID"=sites$posid,
                     "fragLength"=width(sites),
@@ -25,45 +38,4 @@ getEstimatedAbundance <- function(sites){
   dereplicatedSites$estAbundRank <- rank(-1*dereplicatedSites$estAbundProp, ties.method="max")
   
   dereplicatedSites
-}
-
-
-getEstimatedAbundance.chris <- function(sites){
-  #standardized input is converted to df and pcr dereplicated
-  dfr <- as.data.frame(sites)
-  dfr <- distinct(dfr)
-  
-  #split based on unique start position
-  sites.list <- split(dfr, dfr$posid)
-  
-  #collect relevant info for abundance and reconstruction
-  unique.sites.df <- do.call(rbind, lapply(sites.list, function(x){
-    intSite <- ifelse(x$strand[1] == "+", x$start[1], x$end[1])
-    breakpoint <- ifelse(x$strand[1] == "+", max(x$end), min(x$start))
-    df <- data.frame(seqnames = x$seqnames[1], 
-                     start = ifelse(x$strand[1] == "+", intSite, breakpoint), 
-                     end = ifelse(x$strand[1] == "+", breakpoint, intSite), 
-                     strand = x$strand[1], 
-                     GTSP = x$GTSP[1], 
-                     posid = x$posid[1], 
-                     estAbund = nrow(x))
-  }))
-  row.names(unique.sites.df) <- NULL
-  
-  ranges <- IRanges(start = unique.sites.df$start, end = unique.sites.df$end)
-  
-  unique.sites <- GRanges(
-    seqnames = unique.sites.df$seqnames,
-    ranges = ranges,
-    strand = unique.sites.df$strand,
-    seqinfo = seqinfo(sites),
-    GTSP = unique.sites.df$GTSP,
-    posid = unique.sites.df$posid,
-    estAbund = unique.sites.df$estAbund)
-  
-  #add proportion and rank to dereplicated unique grange
-  unique.sites$estAbundProp <- unique.sites$estAbund/sum(unique.sites$estAbund)
-  unique.sites$estAbundRank <- rank(-1*unique.sites$estAbundProp, ties.method="max")
-  
-  unique.sites
 }
