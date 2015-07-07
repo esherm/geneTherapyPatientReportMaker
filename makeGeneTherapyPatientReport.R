@@ -190,7 +190,7 @@ barplotAbunds <- getAbundanceSums(filterLowAbund(standardizedDereplicatedSites,
                                                  abundCutoff.barplots),
                                   c("CellType", "Timepoint"))
 
-barplotAbunds <- arrange(barplotAbunds, estAbundProp)
+barplotAbunds <- order_barplot(barplotAbunds)
 
 #detailed abundance plot
 abundCutoff.detailed <- getAbundanceThreshold(standardizedDereplicatedSites, 50)
