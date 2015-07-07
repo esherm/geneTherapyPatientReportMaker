@@ -11,7 +11,9 @@ opts_chunk$set(
   warning=FALSE, 
   error=TRUE, 
   message=FALSE, 
-  cache=T, 
+  cache=TRUE, 
+  dpi=100,
+  dev=c("png","pdf","postscript"),
   results="asis")
 options(knitr.table.format = 'html')
 ```
