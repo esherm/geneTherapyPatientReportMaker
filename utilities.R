@@ -125,7 +125,9 @@ order_barplot <- function(barplotAbunds){
   Abunds <- lapply(Abunds, function(x){
     genes <- x$maskedRefGeneName
     pos_lowAbund <- grep("LowAbund", genes)
-    if(pos_lowAbund == 1){
+    if(length(genes) == 1){
+      x <- x
+    }else if(pos_lowAbund == 1){
       new_genes <- c(genes[2:length(genes)], "LowAbund")
       gene_order <- as.integer(sapply(new_genes, function(y){
         grep(y, x$maskedRefGeneName)
