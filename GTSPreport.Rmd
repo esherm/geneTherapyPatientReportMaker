@@ -36,7 +36,8 @@ The graph below visualizes population based summaries as a function of time.
 
 ```{r pop_graphs, results='asis', fig.width=8, fig.height=6}
 if(length(unique(timepointPopulationInfo$group)) >1 ){
-  ggplot(data=timepointPopulationInfo, aes(group, value)) + geom_bar(stat="identity") + facet_wrap(~variable, scales="free")
+  ggplot(data=timepointPopulationInfo, aes(group, value)) + geom_bar(stat="identity") + facet_wrap(~variable, scales="free") +
+    scale_x_discrete(limits = unique(timepointPopulationInfo$group))
 }else{cat(paste0("**Only one timepoint, ", unique(levels(timepointPopulationInfo$group)), ", present.  Insufficient data available to plot population estimators across timepoints.**"))}
 ```
 
