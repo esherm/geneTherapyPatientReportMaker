@@ -279,7 +279,7 @@ if( nrow(sites.multi) > 0 ) {
 write.csv(as.data.frame(standardizedDereplicatedSites),
           file=paste(trial, patient, "uniquehit.csv", sep="."))
 
-##save.image("debug.RData")
+save.image("debug.RData")
 ##end setting variables for markdown report
 
 fig.path <- paste(unique(trial), unique(patient),
