@@ -20,7 +20,7 @@ options(knitr.table.format = 'html')
 
 ## Introduction
 
-The attached report describes results of analysis of integration site distributions and relative abundance for samples from gene therapy trials. For cases of gene correction in hematopoietic stem cells, it is possible to harvest blood cells and analyze the distributions of integration sites. Frequency of isolation information can provide information on the clonal structure of the population. This report summarizes results for subject `r sanitize(patient)` over time points `r sanitize(paste(timepoint,collapse=", "))` in UCSC genome draft `r sanitize(freeze)`. 
+The attached report describes results of analysis of integration site distributions and relative abundance for samples from gene therapy trials. For cases of gene correction in circulating blood cells, it is possible to harvest cells sequentially from blood to monitor cell populations. Frequency of isolation information can provide information on the clonal structure of the population. This report summarizes results for subject `r sanitize(patient)` over time points `r sanitize(paste(timepoint,collapse=", "))` in UCSC genome draft `r sanitize(freeze)`. 
 
 The samples studied in this report, the numbers of sequence reads, and unique integration sites available for this subject are shown below. We quantify population clone diversity using [Gini coefficients](https://en.wikipedia.org/wiki/Gini_coefficient) and [Shannon index](https://en.wikipedia.org/wiki/Diversity_index#Shannon_index). The Gini coefficient provides a measure of inequality in clonal abundance in each sample. The coefficient equals zero when all sites are equally abundant (polyclonal) and increases as fewer sites account for more of the total (oligoclonal). Shannon index is another widely used measure of diversity and it accounts for both abundance and evenness of the integration events.
 
@@ -30,7 +30,7 @@ kable(summaryTable, caption="Sample Summary Table", row.names=FALSE, format="htm
 ```
 
 
-## Population Size over time points
+## Population Diversity over time points
 
 The graph below visualizes population based summaries as a function of time.
 
@@ -55,7 +55,7 @@ siteColors["LowAbund"] <- "#E0E0E0"
 
 ggplot(data=barplotAbunds, aes(Timepoint, estAbundProp, fill=maskedRefGeneName)) +
   geom_bar(stat="identity") + facet_wrap(~CellType, scales="free") + scale_fill_manual(values=siteColors) +
-  labs(y="Relative Sonic Abundance", x="Timepoint") +
+  labs(y="Relative Sonic Abundance", x="Timepoint", fill="GeneNames") +
   scale_y_continuous(labels=percent)
 ```
 

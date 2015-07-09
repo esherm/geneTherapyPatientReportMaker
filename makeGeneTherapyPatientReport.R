@@ -254,6 +254,8 @@ popSummaryTable <- arrange(popSummaryTable,Timepoint,CellType)
 cols <- c("Trial", "GTSP", "Replicates", "Patient", "Timepoint", "CellType", 
           "TotalReads", "UniqueSites", "FragMethod", "VCN", "Gini", "Shannon")
 summaryTable <- popSummaryTable[,cols]
+
+summaryTable$VCN <- ifelse(summaryTable$VCN == 0, NA, summaryTable$VCN)
     
 timepointPopulationInfo <- melt(timepointPopulationInfo, "group")
 
