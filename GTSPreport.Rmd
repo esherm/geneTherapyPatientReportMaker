@@ -182,10 +182,12 @@ if(! require('PubMedWordcloud')) stop("Need PubMedWordcloud package")
 df <- as.data.frame(standardizedDereplicatedSites)
 df <- data.frame(
 	Timepoint=df$Timepoint,
-    CellType=df$CellType,
+    CellType=factor(df$CellType, levels=CellType_order),
 	word=df$nearest_refSeq_gene,
     freq=df$estAbund)
+df <- arrange(df, CellType, Timepoint)
 df.wordlist <- split(df, f=paste(df$Timepoint, df$CellType))
+df.wordlist <- df.wordlist[unique(paste(df$Timepoint, df$CellType))]
 max_num_words=100
 null <- sapply(seq(df.wordlist), function(i) 
 plotWordCloud(df.wordlist[[i]],
