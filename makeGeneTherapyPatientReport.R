@@ -37,7 +37,8 @@ library("reldist")
 library("sonicLength")
 library("reshape2")
 library("scales")
-library("intSiteRetriever") 
+library("intSiteRetriever")
+library("BiocParallel")
 ## intSiteRetriever package was installed from github as follows
 ## git clone https://github.com/BushmanLab/intSiteRetriever.git
 ## cd intSiteRetriever
@@ -61,6 +62,11 @@ message(cmd)
 stopifnot( system(cmd)==0 )
 source("CancerGeneList/onco_genes.R")
 
+unlink("intSiteCaller", force=TRUE, recursive=TRUE)
+cmd <- "git clone https://github.com/BushmanLab/intSiteCaller.git"
+message(cmd)
+stopifnot( system(cmd)==0 )
+source("intSiteCaller/hiReadsProcessor.R")
 
 #### load datasets and process them before knit #### 
 message("\nReading csv from ", csvfile)
@@ -315,6 +321,7 @@ markdownToHTML(mdfile, htmlfile, extensions=c('tables'),
 
 #### clean up ####
 unlink("CancerGeneList", force=TRUE, recursive=TRUE)
+unlink("intSiteCaller", force=TRUE, recursive=TRUE)
 unlink(mdfile, force=TRUE, recursive=TRUE)
 
 message("\nReport ", htmlfile, " is generated from ", csvfile)
