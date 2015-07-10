@@ -279,6 +279,20 @@ if( nrow(sites.multi) > 0 ) {
                       fragLength=sites.multi$length,
                       replicate=sites.multi$replicate)
     
+    if(use.sonicLength){
+      estAbund.uniqueFragLen <- function(location, fragLen, replicate=NULL){
+        if(is.null(replicate)){replicate <- 1}  #Need for downstream workflow
+        dfr <- data.frame(location = location, fragLen = fragLen, 
+                          replicate = replicate)
+        dfr_dist <- distinct(dfr)
+        site_list <- split(dfr_dist, dfr_dist$location)
+        theta <- sapply(site_list, function(x){nrow(x)})
+        theta <- theta[unique(dfr$location)]
+        list(theta=theta)
+      }
+      estAbund <- estAbund.uniqueFragLen
+    }
+    
     if(length(unique(dfr$replicate))==1){
         estimatedAbundances <- estAbund(dfr$ID, dfr$fragLength)
     }else{
