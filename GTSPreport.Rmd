@@ -20,23 +20,24 @@ options(knitr.table.format = 'html')
 
 ## Introduction
 
-The attached report describes results of analysis of integration site distributions and relative abundance for samples from gene therapy trials. For cases of gene correction in hematopoietic stem cells, it is possible to harvest blood cells and analyze the distributions of integration sites. Frequency of isolation information can provide information on the clonal structure of the population. This report summarizes results for subject `r sanitize(patient)` over time points `r sanitize(paste(timepoint,collapse=", "))` in UCSC genome draft `r sanitize(freeze)`. 
+The attached report describes results of analysis of integration site distributions and relative abundance for samples from gene therapy trials. For cases of gene correction in circulating blood cells, it is possible to harvest cells sequentially from blood to monitor cell populations. Frequency of isolation information can provide information on the clonal structure of the population. This report summarizes results for subject `r sanitize(patient)` over time points `r sanitize(paste(timepoint,collapse=", "))` in UCSC genome draft `r sanitize(freeze)`. 
 
 The samples studied in this report, the numbers of sequence reads, and unique integration sites available for this subject are shown below. We quantify population clone diversity using [Gini coefficients](https://en.wikipedia.org/wiki/Gini_coefficient) and [Shannon index](https://en.wikipedia.org/wiki/Diversity_index#Shannon_index). The Gini coefficient provides a measure of inequality in clonal abundance in each sample. The coefficient equals zero when all sites are equally abundant (polyclonal) and increases as fewer sites account for more of the total (oligoclonal). Shannon index is another widely used measure of diversity and it accounts for both abundance and evenness of the integration events.
 
 
 ```{r summaryTable,results="asis"}
-kable(summaryTable, caption="Sample Summary Table", row.names=FALSE, format="html", digits = 2)
+kable(summaryTable, caption="Sample Summary Table", row.names=FALSE, format="html", digits = 4)
 ```
 
 
-## Population Size over time points
+## Population Diversity over time points
 
 The graph below visualizes population based summaries as a function of time.
 
 ```{r pop_graphs, results='asis', fig.width=8, fig.height=6}
 if(length(unique(timepointPopulationInfo$group)) >1 ){
-  ggplot(data=timepointPopulationInfo, aes(group, value)) + geom_bar(stat="identity") + facet_wrap(~variable, scales="free")
+  ggplot(data=timepointPopulationInfo, aes(group, value)) + geom_bar(stat="identity") + facet_wrap(~variable, scales="free") +
+    scale_x_discrete(limits = unique(timepointPopulationInfo$group))
 }else{cat(paste0("**Only one timepoint, ", unique(levels(timepointPopulationInfo$group)), ", present.  Insufficient data available to plot population estimators across timepoints.**"))}
 ```
 
@@ -54,7 +55,7 @@ siteColors["LowAbund"] <- "#E0E0E0"
 
 ggplot(data=barplotAbunds, aes(Timepoint, estAbundProp, fill=maskedRefGeneName)) +
   geom_bar(stat="identity") + facet_wrap(~CellType, scales="free") + scale_fill_manual(values=siteColors) +
-  labs(y="Relative Sonic Abundance", x="Timepoint") +
+  labs(y="Relative Sonic Abundance", x="Timepoint", fill="GeneNames") +
   scale_y_continuous(labels=percent)
 ```
 
@@ -181,10 +182,12 @@ if(! require('PubMedWordcloud')) stop("Need PubMedWordcloud package")
 df <- as.data.frame(standardizedDereplicatedSites)
 df <- data.frame(
 	Timepoint=df$Timepoint,
-    CellType=df$CellType,
+    CellType=factor(df$CellType, levels=CellType_order),
 	word=df$nearest_refSeq_gene,
     freq=df$estAbund)
+df <- arrange(df, CellType, Timepoint)
 df.wordlist <- split(df, f=paste(df$Timepoint, df$CellType))
+df.wordlist <- df.wordlist[unique(paste(df$Timepoint, df$CellType))]
 max_num_words=100
 null <- sapply(seq(df.wordlist), function(i) 
 plotWordCloud(df.wordlist[[i]],
@@ -203,7 +206,7 @@ df.tab$html <- sprintf("<img src='%s' alt='wordBubble'> <br />%s",
 	df.tab$pngfile,
 	gsub('.', ' ', df.tab$name, fixed=TRUE) )
 df.tab$isthere <- file.exists(df.tab$pngfile)
-df.tab$isthere <- TRUE
+df.tab$isthere <- TRUE #Why is this here?
 if(any(!df.tab$isthere)) {
 message("The word bubbles are not generated for the following time point and cell types:\n", paste(df.tab$name[!df.tab$isthere], collapse="\n") )
 }
@@ -211,7 +214,9 @@ df.tab <- subset(df.tab, isthere)
 df.kable <- matrix(df.tab$html, byrow=TRUE, ncol=3)
 dups <- names(which(table(df.kable)>1))
 if(length(dups)>0) {
-  df.kable[tail(which(df.kable==dups),1)] <- ""
+  dup_pos <- sapply(1:length(dups), function(i){
+    which(df.kable == dups[i])})[2,]
+  df.kable[dup_pos] <- ""
 }
 kable(df.kable, row.names=FALSE,format="html", escape=FALSE)
 ```

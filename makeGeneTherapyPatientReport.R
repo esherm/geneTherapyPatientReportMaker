@@ -191,6 +191,9 @@ barplotAbunds <- getAbundanceSums(filterLowAbund(standardizedDereplicatedSites,
                                   c("CellType", "Timepoint"))
 
 barplotAbunds <- order_barplot(barplotAbunds)
+CellType_order <- unique(barplotAbunds$CellType)
+barplotAbunds$CellType <- factor(barplotAbunds$CellType, 
+                                 levels=CellType_order)
 
 #detailed abundance plot
 abundCutoff.detailed <- getAbundanceThreshold(standardizedDereplicatedSites, 50)
@@ -204,13 +207,17 @@ categorySums <- sapply(split(detailedAbunds$estAbundProp,
 
 detailedAbunds$maskedRefGeneName <- factor(detailedAbunds$maskedRefGeneName,
                                            levels=names(sort(categorySums)))
-
+detailedAbunds$CellType <- factor(detailedAbunds$CellType,
+                                  levels=CellType_order)
 
 #================Longitudinal Behaviour===============================
 longitudinal <- as.data.frame(standardizedDereplicatedSites)[,c("Timepoint",
                                                                 "CellType",
                                                                 "estAbundProp",
                                                                 "posid")]
+longitudinal$CellType <- factor(longitudinal$CellType,
+                                levels=CellType_order)
+
 has_longitudinal_data <- length(unique(longitudinal$Timepoint)) > 1
 
 
@@ -223,6 +230,10 @@ badActorData <- sapply(badActors, function(badActor){
   standardizedDereplicatedSites[hasBadActor & badActorWithin100K]
 })
 
+badActorData <- lapply(badActorData, function(x){
+  x$CellType <- factor(x$CellType, levels=CellType_order)
+  x
+})
 
 #==================SET VARIABLES FOR MARKDOWN REPORT=====================
 timepoint <- levels(sets$Timepoint)
@@ -243,6 +254,8 @@ popSummaryTable <- arrange(popSummaryTable,Timepoint,CellType)
 cols <- c("Trial", "GTSP", "Replicates", "Patient", "Timepoint", "CellType", 
           "TotalReads", "UniqueSites", "FragMethod", "VCN", "Gini", "Shannon")
 summaryTable <- popSummaryTable[,cols]
+
+summaryTable$VCN <- ifelse(summaryTable$VCN == 0, NA, summaryTable$VCN)
     
 timepointPopulationInfo <- melt(timepointPopulationInfo, "group")
 
@@ -279,7 +292,7 @@ if( nrow(sites.multi) > 0 ) {
 write.csv(as.data.frame(standardizedDereplicatedSites),
           file=paste(trial, patient, "uniquehit.csv", sep="."))
 
-##save.image("debug.RData")
+save.image("debug.RData")
 ##end setting variables for markdown report
 
 fig.path <- paste(unique(trial), unique(patient),
