@@ -2,40 +2,42 @@
 `r format(Sys.Date(), "%b %d %Y")`
 
 ```{r setup,echo=FALSE}
-opts_chunk$set(fig.path='figureByPatient/', fig.align='left', comment="",
-               echo=FALSE, warning=FALSE, error=TRUE, message=FALSE, cache=F, results="asis")
+library(knitr)
+opts_chunk$set(
+  fig.path=paste0(fig.path, "/"), 
+  fig.align='left', 
+  comment="",
+  echo=FALSE, 
+  warning=FALSE, 
+  error=TRUE, 
+  message=FALSE, 
+  cache=FALSE, 
+  dpi=100,
+  dev=c("png","pdf","postscript"),
+  results="asis")
 options(knitr.table.format = 'html')
 ```
 
 ## Introduction
 
-The attached report describes results of analysis of integration site distributions and relative abundance for samples from gene therapy trials. For cases of gene correction in hematopoietic stem cells, it is possible to harvest blood cells and analyze the distributions of integration sites. Frequency of isolation information can provide information on the clonal structure of the population. This report summarizes results for subject `r sanitize(patient)` over time points `r sanitize(paste(timepoint,collapse=", "))` in UCSC genome draft `r sanitize(freeze)`. 
+The attached report describes results of analysis of integration site distributions and relative abundance for samples from gene therapy trials. For cases of gene correction in circulating blood cells, it is possible to harvest cells sequentially from blood to monitor cell populations. Frequency of isolation information can provide information on the clonal structure of the population. This report summarizes results for subject `r sanitize(patient)` over time points `r sanitize(paste(timepoint,collapse=", "))` in UCSC genome draft `r sanitize(freeze)`. 
 
-The samples studied in this report, the numbers of sequence reads, and unique integration sites available for this subject are shown below. 
+The samples studied in this report, the numbers of sequence reads, and unique integration sites available for this subject are shown below. We quantify population clone diversity using [Gini coefficients](https://en.wikipedia.org/wiki/Gini_coefficient) and [Shannon index](https://en.wikipedia.org/wiki/Diversity_index#Shannon_index). The Gini coefficient provides a measure of inequality in clonal abundance in each sample. The coefficient equals zero when all sites are equally abundant (polyclonal) and increases as fewer sites account for more of the total (oligoclonal). Shannon index is another widely used measure of diversity and it accounts for both abundance and evenness of the integration events.
+
 
 ```{r summaryTable,results="asis"}
-kable(summaryTable, caption="Sample Summary Table", row.names=FALSE, format="html", digits = 2)
+kable(summaryTable, caption="Sample Summary Table", row.names=FALSE, format="html", digits = 4)
 ```
 
-## Population Size
 
-Under most circumstances only a subset of sites will be sampled. We thus include an estimate of sample size based on frequency of isolation information from the SonicLength method [(Berry, 2012)](http://www.ncbi.nlm.nih.gov/pubmed/22238265). 
-The 'S.chao1' column denotes the estimated population size derived using Chao estimate [(Chao, 1987)](http://www.ncbi.nlm.nih.gov/pubmed/3427163). If sample replicates were present then estimates were subjected to jackknife bias correction.
-
-We also quantify population clone structure using Gini Coefficients. The Gini coefficient provides a measure of inequality in clonal abundance in each sample. The coefficient equals zero when all sites are equally abundant (polyclonal) and increases as fewer sites account for more of the total (oligoclonal). 
-
-The table below summarizes sample population for each timepoint & celltype combination. 
-
-```{r ChaoGiniTable,results="asis"}
-kable(popSummaryTable, caption="Sample Population Summary", format="html",
-      digits = 2, row.names=FALSE)
-```
+## Population Diversity over time points
 
 The graph below visualizes population based summaries as a function of time.
 
 ```{r pop_graphs, results='asis', fig.width=8, fig.height=6}
 if(length(unique(timepointPopulationInfo$group)) >1 ){
-  ggplot(data=timepointPopulationInfo, aes(group, value)) + geom_bar(stat="identity") + facet_wrap(~variable, scales="free")
+  ggplot(data=timepointPopulationInfo, aes(group, value)) + geom_bar(stat="identity") + facet_wrap(~variable, scales="free") +
+    scale_x_discrete(limits = unique(timepointPopulationInfo$group))
 }else{cat(paste0("**Only one timepoint, ", unique(levels(timepointPopulationInfo$group)), ", present.  Insufficient data available to plot population estimators across timepoints.**"))}
 ```
 
@@ -53,7 +55,7 @@ siteColors["LowAbund"] <- "#E0E0E0"
 
 ggplot(data=barplotAbunds, aes(Timepoint, estAbundProp, fill=maskedRefGeneName)) +
   geom_bar(stat="identity") + facet_wrap(~CellType, scales="free") + scale_fill_manual(values=siteColors) +
-  labs(y="Relative Sonic Abundance", x="Timepoint") +
+  labs(y="Relative Sonic Abundance", x="Timepoint", fill="GeneNames") +
   scale_y_continuous(labels=percent)
 ```
 
@@ -73,7 +75,7 @@ When multiple time points are available, it is of interest to track the behavior
 ```{r ParallelLines, fig.width=10, fig.height=10}
 if (has_longitudinal_data) {
   ggplot(longitudinal, aes(x=Timepoint, y=estAbundProp)) +
-    geom_point(size=.5) +
+    geom_point(size=3) +
     geom_line(aes(colour=posid, group=posid), alpha=.5, show_guide=FALSE) +
     facet_wrap(~CellType, scales="free") +
     ggtitle(paste("Patient:", patient, "Trial:", trial)) + xlab("Timepoint") + 
@@ -107,29 +109,115 @@ badActorOut <- lapply(badActors, function(badActor){
 ```
 `r knit(text = unlist(badActorOut))`
 
-## Do any clones account for greater than 20% of the total?
-  
-For some trials, a reporting criteria is whether any cell clones expand to account for greater than 20% of all clones. This is summarized below for subject `r patient`. Abundance is estimated using the SonicLength method. Data such as this must, of course, be interpreted in the context of results from other assays.
+`r percent_cutoff <- 0.2`  
+## Do any uniquely mapped clones account for greater than `r percent(percent_cutoff)` of the total?
+For some trials, a reporting criteria is whether any cell clones expand to account for greater than `r percent(percent_cutoff)` of all clones. This is summarized below for subject `r patient`. Abundance is estimated using the SonicLength method. Data such as this must, of course, be interpreted in the context of results from other assays.
 
 ```{r TwentyPercSites, results="asis"}
-### Sites >20% of data by Alias ###
-knit_exit()
-rows <- sites.qc$estAbundance1Prop >= .2
-
-if(any(rows)) {
-  test2 <- arrange(unique(sites.qc[rows,c("patient", "timepoint", "celltype", "posID",
-                                          "estAbundance1", "estAbundance1Prop",
-                                          "estAbundance1Rank", "geneType")]),
-                   patient,timepoint,celltype,plyr::desc(estAbundance1Prop),posID)
-  tps <- sortTimePoints(test2$timepoint)  
-  test2$timepoint <- factor(test2$timepoint, levels=names(tps))
-  test2 <- arrange(test2, patient,timepoint,celltype,estAbundance1Rank)  
-  names(test2) <- col.keys[names(test2)]
-  test2$RelativeAbundance <- percent(test2$RelativeAbundance)
-  kable(test2, caption="Sites >20% of the Total", format="html", row.names=FALSE)  
-} else { 
-  cat("<strong>No sites found in this patient which are greater than 20% of the total data.</strong>")        
+rows <- standardizedDereplicatedSites$estAbundProp >= percent_cutoff
+if( any(rows) ) {
+	df <- as.data.frame(standardizedDereplicatedSites[rows,])
+	df$Timepoint <- sortFactorTimepoints(df$Timepoint)
+    df <- arrange(df, Timepoint, CellType, estAbund)
+	df$position <- ifelse(df$strand=="+", df$start, df$end)
+	df$estAbundProp <- percent(df$estAbundProp)
+	df <- subset(df, select=c("seqnames", "strand", "position", "GTSP", "estAbund", "estAbundProp", "estAbundRank", "Timepoint", "CellType", "nearest_refSeq_geneDist", "nearest_refSeq_gene", "nearest_refSeq_geneOrt", "X5pNrstOncoDist", "X5pNrstOnco", "X5pNrstOncoOrt"))
+	colnames(df)[ colnames(df)=="seqnames" ]="Chr"
+	colnames(df)[ colnames(df)=="estAbund" ]="SonicAbundance"
+	colnames(df)[ colnames(df)=="estAbundProp" ]="Fraction"
+	colnames(df)[ colnames(df)=="estAbundRank" ]="Rank"
+	df$nearest_gene=paste0(df$nearest_refSeq_gene, " (", df$nearest_refSeq_geneOrt, ")")
+	df$nearest_Gene_Strand_Distance=paste0(df$nearest_refSeq_gene, " (", df$nearest_refSeq_geneOrt, ") ", df$nearest_refSeq_geneDist)
+	df$nearest_OncoGene_Strand_Distance=paste0(df$X5pNrstOnco, " (", df$X5pNrstOncoOrt, ") ", df$X5pNrstOncoDist)
+	needed <- c("Chr", "strand", "position", "GTSP", "SonicAbundance", "Fraction", "Rank", "Timepoint",	"CellType", "nearest_Gene_Strand_Distance", "nearest_OncoGene_Strand_Distance")
+	df <- subset(df, select=needed)
+	df <- arrange(df, desc(Fraction))
+kable(df, caption=sprintf("Sites >%s of the Total", percent(percent_cutoff)), format="html", 		row.names=FALSE)
+} else {
+	cat(sprintf("<strong>No sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
 }
+```
+
+### Do any multihit event account for greater than `r percent(percent_cutoff)` of the total?
+
+Up until now, all the analysis has been looking at integration sites that can be uniquely mapped. But it is also helpful to look at reads finding multiple equally good alignments in the genome which can be reffered to as 'Multihits'. If an integration site occurred within a repeat element (i.e. Alus, LINE, SINE, etc), then it might be helpful to access those sites for potential detrimental effects. These collection of sequences are analyzed separately due to their ambiguity. To make some sense of these multihits, we bin any sequence(s) which share 1 or more genomic locations hence forming psuedo-collections which can be reffered to as OTUs (operation taxonomic units). Once the OTUs are formed, we compare breakpoints of unique sites and multihits. The idea is to see if there are any multihits which higher in abundance than a unique site in a given sample. Below is a table similar to the one shown previously except we show any events instead of genomic locations which might account for greater than `r percent(percent_cutoff)` of all clones in the data.
+
+```{r TwentyPercSitesMulti, results="asis"}
+if( nrow(sites.multi) < 1 ) {
+	cat(sprintf("<strong>No multihits sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
+} else { 
+total.abundance <- sum(mcols(standardizedDereplicatedSites)$estAbund,
+	sites.multi$estAbund)
+
+is.multi.expanded <- sites.multi$estAbund > total.abundance*percent_cutoff
+
+##tmp <- sites.multi %>% group_by(Patient, Timepoint, CellType) %>%
+##	mutate(istop=(Rank==min(Rank)))
+##is.multi.expanded <- tmp$istop
+					
+if( !any(is.multi.expanded) ) { 
+	cat(sprintf("<strong>No multihits sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
+} else {
+	df <- subset(sites.multi, is.multi.expanded)
+	df <- data.frame(
+		##multihitEvent=paste0("multihit", df$multihitID),
+		multihitEvent="multihit",
+		GTSP=df$GTSP,
+		SonicAbundance=df$estAbund,
+		Fraction=df$estAbund/total.abundance,
+		Rank=df$Rank,
+		Timepoint=df$Timepoint,
+		CellType=df$CellType
+	)			
+	kable(df, caption=sprintf("Multihits Sites >%s of the Total", percent(percent_cutoff)), format="html", row.names=FALSE)
+
+	}
+}
+```
+
+## What is the most frequently occuring gene types in subject `r patient`?
+Each integration site is named by the closest gene.
+```{r wordlelist, fig.width=4, fig.height=4, fig.show='hide'}
+if(! require('PubMedWordcloud')) stop("Need PubMedWordcloud package")
+df <- as.data.frame(standardizedDereplicatedSites)
+df <- data.frame(
+	Timepoint=df$Timepoint,
+    CellType=factor(df$CellType, levels=CellType_order),
+	word=df$nearest_refSeq_gene,
+    freq=df$estAbund)
+df <- arrange(df, CellType, Timepoint)
+df.wordlist <- split(df, f=paste(df$Timepoint, df$CellType))
+df.wordlist <- df.wordlist[unique(paste(df$Timepoint, df$CellType))]
+max_num_words=100
+null <- sapply(seq(df.wordlist), function(i) 
+plotWordCloud(df.wordlist[[i]],
+              scale=c(3,0.5),
+              min.freq=1, max.words=max_num_words, 
+              rot.per = 0, 
+              colors=c(colSets("Set1")[-6],colSets("Paired")))
+)
+```
+```{r worldbubble_Table, results='asis'}
+df.tab <- data.frame(
+	name=names(df.wordlist),
+	pngfile=file.path(fig.path, sprintf("wordlelist-%i.png", seq(df.wordlist))),
+   stringsAsFactors=FALSE)
+df.tab$html <- sprintf("<img src='%s' alt='wordBubble'> <br />%s",
+	df.tab$pngfile,
+	gsub('.', ' ', df.tab$name, fixed=TRUE) )
+df.tab$isthere <- file.exists(df.tab$pngfile)
+df.tab$isthere <- TRUE #Why is this here?
+if(any(!df.tab$isthere)) {
+message("The word bubbles are not generated for the following time point and cell types:\n", paste(df.tab$name[!df.tab$isthere], collapse="\n") )
+}
+df.tab <- subset(df.tab, isthere)
+df.kable <- matrix(df.tab$html, byrow=TRUE, ncol=3)
+df.kable[which(duplicated(c(df.kable)))] <- ""
+kable(df.kable, row.names=FALSE,format="html", escape=FALSE)
+```
+
+```{r knitexit}
+knit_exit()
 ```
 
 ### Do any multihit account for greater than 20% of the total?
