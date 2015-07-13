@@ -212,12 +212,7 @@ message("The word bubbles are not generated for the following time point and cel
 }
 df.tab <- subset(df.tab, isthere)
 df.kable <- matrix(df.tab$html, byrow=TRUE, ncol=3)
-dups <- names(which(table(df.kable)>1))
-if(length(dups)>0) {
-  dup_pos <- sapply(1:length(dups), function(i){
-    which(df.kable == dups[i])})[2,]
-  df.kable[dup_pos] <- ""
-}
+df.kable[which(duplicated(c(df.kable)))] <- ""
 kable(df.kable, row.names=FALSE,format="html", escape=FALSE)
 ```
 

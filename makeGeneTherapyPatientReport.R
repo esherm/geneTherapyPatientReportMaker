@@ -4,8 +4,6 @@ options(stringsAsFactors = FALSE)
 csvfile <- "sampleName_GTSP.csv"
 args <- commandArgs(trailingOnly=TRUE)
 
-use.sonicLength <- FALSE
-
 if( length(args)==1 ) {
   csvfile <- args[1]
 }
@@ -28,6 +26,7 @@ stopifnot(file.exists(file.path(codeDir, "GTSPreport.Rmd")))
 library("RMySQL") #also loads DBI
 library("plyr")
 library("dplyr")
+library("stringr")
 library("markdown")
 library("knitr")
 library("PubMedWordcloud")
