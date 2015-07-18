@@ -1,4 +1,5 @@
 # Analysis of integration site distributions and relative clonal abundance for subject `r sanitize(patient)`
+
 `r format(Sys.Date(), "%b %d %Y")`
 
 ```{r setup,echo=FALSE}
@@ -18,6 +19,7 @@ opts_chunk$set(
 options(knitr.table.format = 'html')
 ```
 
+***
 ## Introduction
 
 The attached report describes results of analysis of integration site distributions and relative abundance for samples from gene therapy trials. For cases of gene correction in circulating blood cells, it is possible to harvest cells sequentially from blood to monitor cell populations. Frequency of isolation information can provide information on the clonal structure of the population. This report summarizes results for subject `r sanitize(patient)` over time points `r sanitize(paste(timepoint,collapse=", "))` in UCSC genome draft `r sanitize(freeze)`. 
@@ -41,9 +43,15 @@ if(length(unique(timepointPopulationInfo$group)) >1 ){
 }else{cat(paste0("**Only one timepoint, ", unique(levels(timepointPopulationInfo$group)), ", present.  Insufficient data available to plot population estimators across timepoints.**"))}
 ```
 
+***
 ## Relative abundance of cell clones
 
-The relative abundance of cell clones is summarized in the attached stacked bar graphs.  The cell fraction studied is named at the top, the time points are marked at the bottom. The different bars in each panel show the major cell clones, as marked by integration sites.  A key to the sites is shown at the right.  Each integration site is named by the nearest gene. The '*' indicates if the integration site is with the transcription unit for that gene, the '~' indicates a cancer related gene, and the '!' indicates a gene of interest from previous gene therapy trials (these include genes involved in adverse events, and genes at clustered integration sites from the first SCID trial).
+The relative abundance of cell clones is summarized in the attached stacked bar graphs.  The cell fraction studied is named at the top, the time points are marked at the bottom. The different bars in each panel show the major cell clones, as marked by integration sites.  A key to the sites is shown at the right. Throughout the whole report, each integration site is assigned a ```GeneName``` given by:
+
+ - ```GeneName``` refers to the closest gene to either end and strand,  
+ - __*__  indicates the site is within the transcription unit,  
+ - __~__  indicates the site is within 50kb of a cancer related gene,  
+ - __!__  indicates the gene was reported to be related with adverse events in previous gene therapy trials (these include genes involved in adverse events, and genes at clustered integration sites from the first SCID trial).  
 
 Integration sites were recovered using ligation mediated PCR after random fragmentation of genomic DNA, which reduces recovery biases compared with restriction enzyme cleavage. Relative abundance was not measured from read counts, which are known to be inaccurate, but from marks introduced into DNA specimens prior to PCR amplification using the SonicLength method [PMID:22238265](http://www.ncbi.nlm.nih.gov/pubmed/22238265).
 
@@ -58,7 +66,7 @@ ggplot(data=barplotAbunds, aes(Timepoint, estAbundProp, fill=maskedRefGeneName))
   labs(y="Relative Sonic Abundance", x="Timepoint", fill="GeneNames") +
   scale_y_continuous(labels=percent)
 ```
-
+***
 Here is another way to perceive top ranking integration sites by genes within each celltype.  Any sites with Estimated Relative Abundance below `r percent(abundCutoff.detailed)` are binned as LowAbund.
 
 ```{r sitetype_heatmap, fig.width=12, fig.height=11}
@@ -68,6 +76,7 @@ ggplot(data=detailedAbunds, aes(Timepoint, maskedRefGeneName, fill=estAbundProp)
   theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1))
 ```
 
+***
 ## Longitudinal behavior of major clones
 
 When multiple time points are available, it is of interest to track the behavior of the most abundant clones.  A plot of the relative abundances of major clones, based on output from SonicLength, is shown below. For cases where only a single time point is available, the data is just plotted as unlinked points. 
@@ -85,6 +94,7 @@ if (has_longitudinal_data) {
   }else{cat(paste0("**Only one timepoint, ", unique(levels(timepointPopulationInfo$group)), ", present.  Insufficient data available to plot changes of clone densities across timepoints.**"))}
 ```
 
+***
 ## Integration sites near particular genes of interest
 
 Integration sites near genes that have been associated with adverse events are of particular interest. Thus, we have cataloged all integration sites for which a gene of interest is the nearest cancer-related gene.
@@ -103,36 +113,48 @@ badActorOut <- lapply(badActors, function(badActor){
   if(nrow(sites)>1){
     knit_child("badActorPartial.Rmd", quiet=T, envir=environment())
     }else{
-      knit_expand(text=paste0("### ", badActor, "\n **No sites within 100kb of any ", badActor," TSS for this patient.**\n***"))
+      knit_expand(text=paste0("### ", badActor, "\n **No sites within 100kb of any ", badActor," TSS for this patient.**\n"))
     }
   })
 ```
 `r knit(text = unlist(badActorOut))`
 
 `r percent_cutoff <- 0.2`  
+***
 ## Do any uniquely mapped clones account for greater than `r percent(percent_cutoff)` of the total?
-For some trials, a reporting criteria is whether any cell clones expand to account for greater than `r percent(percent_cutoff)` of all clones. This is summarized below for subject `r patient`. Abundance is estimated using the SonicLength method. Data such as this must, of course, be interpreted in the context of results from other assays.
+For some trials, a reporting criteria is whether any cell clones expand to account for greater than `r percent(percent_cutoff)` of all clones. This is summarized below for subject `r patient`. Abundance is estimated using the SonicLength method. Data such as this must, of course, be interpreted in the context of results from other assays. Distances reported refer to transcription start sites (5').
 
 ```{r TwentyPercSites, results="asis"}
 rows <- standardizedDereplicatedSites$estAbundProp >= percent_cutoff
 if( any(rows) ) {
-	df <- as.data.frame(standardizedDereplicatedSites[rows,])
+
+df <- as.data.frame(standardizedDereplicatedSites[rows,])
 	df$Timepoint <- sortFactorTimepoints(df$Timepoint)
     df <- arrange(df, Timepoint, CellType, estAbund)
 	df$position <- ifelse(df$strand=="+", df$start, df$end)
 	df$estAbundProp <- percent(df$estAbundProp)
-	df <- subset(df, select=c("seqnames", "strand", "position", "GTSP", "estAbund", "estAbundProp", "estAbundRank", "Timepoint", "CellType", "nearest_refSeq_geneDist", "nearest_refSeq_gene", "nearest_refSeq_geneOrt", "X5pNrstOncoDist", "X5pNrstOnco", "X5pNrstOncoOrt"))
 	colnames(df)[ colnames(df)=="seqnames" ]="Chr"
 	colnames(df)[ colnames(df)=="estAbund" ]="SonicAbundance"
 	colnames(df)[ colnames(df)=="estAbundProp" ]="Fraction"
 	colnames(df)[ colnames(df)=="estAbundRank" ]="Rank"
-	df$nearest_gene=paste0(df$nearest_refSeq_gene, " (", df$nearest_refSeq_geneOrt, ")")
-	df$nearest_Gene_Strand_Distance=paste0(df$nearest_refSeq_gene, " (", df$nearest_refSeq_geneOrt, ") ", df$nearest_refSeq_geneDist)
-	df$nearest_OncoGene_Strand_Distance=paste0(df$X5pNrstOnco, " (", df$X5pNrstOncoOrt, ") ", df$X5pNrstOncoDist)
-	needed <- c("Chr", "strand", "position", "GTSP", "SonicAbundance", "Fraction", "Rank", "Timepoint",	"CellType", "nearest_Gene_Strand_Distance", "nearest_OncoGene_Strand_Distance")
+	df$GeneName=df$nearest_refSeq_gene
+	df$nearest_Txn_Start_Dist=sprintf("%s(%s) %s", df$X5pnearest_refSeq_gene, df$X5pnearest_refSeq_geneOrt, df$nearest_refSeq_geneDist)
+	df$nearest_Onco_Txn_Start_Dist=sprintf("%s(%s) %s", df$X5pNrstOnco, df$X5pNrstOncoOrt, df$X5pNrstOncoDist)
+	needed <- c("Chr",
+		"strand",
+		"position",
+		"GTSP",
+		"SonicAbundance",
+		"Fraction",
+		"Rank",
+		"Timepoint",
+		"CellType",
+		"GeneName",
+		"nearest_Txn_Start_Dist",
+		"nearest_Onco_Txn_Start_Dist")
 	df <- subset(df, select=needed)
 	df <- arrange(df, desc(Fraction))
-kable(df, caption=sprintf("Sites >%s of the Total", percent(percent_cutoff)), format="html", 		row.names=FALSE)
+	kable(df, caption=sprintf("Sites >%s of the Total", percent(percent_cutoff)), format="html", 		row.names=FALSE)
 } else {
 	cat(sprintf("<strong>No sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
 }
@@ -151,10 +173,6 @@ total.abundance <- sum(mcols(standardizedDereplicatedSites)$estAbund,
 
 is.multi.expanded <- sites.multi$estAbund > total.abundance*percent_cutoff
 
-##tmp <- sites.multi %>% group_by(Patient, Timepoint, CellType) %>%
-##	mutate(istop=(Rank==min(Rank)))
-##is.multi.expanded <- tmp$istop
-					
 if( !any(is.multi.expanded) ) { 
 	cat(sprintf("<strong>No multihits sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
 } else {
@@ -175,8 +193,9 @@ if( !any(is.multi.expanded) ) {
 }
 ```
 
+***
 ## What is the most frequently occuring gene types in subject `r patient`?
-Each integration site is named by the closest gene.
+
 ```{r wordlelist, fig.width=4, fig.height=4, fig.show='hide'}
 if(! require('PubMedWordcloud')) stop("Need PubMedWordcloud package")
 df <- as.data.frame(standardizedDereplicatedSites)
