@@ -20,6 +20,7 @@ options(knitr.table.format = 'html')
 ```
 
 ***
+<P style="page-break-before: always">
 ## Introduction
 
 The attached report describes results of analysis of integration site distributions and relative abundance for samples from gene therapy trials. For cases of gene correction in circulating blood cells, it is possible to harvest cells sequentially from blood to monitor cell populations. Frequency of isolation information can provide information on the clonal structure of the population. This report summarizes results for subject `r sanitize(patient)` over time points `r sanitize(paste(timepoint,collapse=", "))` in UCSC genome draft `r sanitize(freeze)`. 
@@ -44,15 +45,18 @@ if(length(unique(timepointPopulationInfo$group)) >1 ){
 ```
 
 ***
+<P style="page-break-before: always">
 ## Relative abundance of cell clones
 
 The relative abundance of cell clones is summarized in the attached stacked bar graphs.  The cell fraction studied is named at the top, the time points are marked at the bottom. The different bars in each panel show the major cell clones, as marked by integration sites.  A key to the sites is shown at the right. Throughout the whole report, each integration site is assigned a ```GeneName``` given by:
 
+<font face="Courier" color="#333399">
  - ```GeneName``` refers to the closest gene to either end and strand,  
- - __*__  indicates the site is within the transcription unit,  
+ - __*__  indicates the site is within a transcription unit,  
  - __~__  indicates the site is within 50kb of a cancer related gene,  
  - __!__  indicates the gene was reported to be related with adverse events in previous gene therapy trials (these include genes involved in adverse events, and genes at clustered integration sites from the first SCID trial).  
-
+</font>
+ 
 Integration sites were recovered using ligation mediated PCR after random fragmentation of genomic DNA, which reduces recovery biases compared with restriction enzyme cleavage. Relative abundance was not measured from read counts, which are known to be inaccurate, but from marks introduced into DNA specimens prior to PCR amplification using the SonicLength method [PMID:22238265](http://www.ncbi.nlm.nih.gov/pubmed/22238265).
 
 In the barplots below, any sites with Estimated Relative Abundance below `r percent(abundCutoff.barplots)` are binned as LowAbund.
@@ -67,6 +71,7 @@ ggplot(data=barplotAbunds, aes(Timepoint, estAbundProp, fill=maskedRefGeneName))
   scale_y_continuous(labels=percent)
 ```
 ***
+<P style="page-break-before: always">
 Here is another way to perceive top ranking integration sites by genes within each celltype.  Any sites with Estimated Relative Abundance below `r percent(abundCutoff.detailed)` are binned as LowAbund.
 
 ```{r sitetype_heatmap, fig.width=12, fig.height=11}
@@ -77,6 +82,7 @@ ggplot(data=detailedAbunds, aes(Timepoint, maskedRefGeneName, fill=estAbundProp)
 ```
 
 ***
+<P style="page-break-before: always">
 ## Longitudinal behavior of major clones
 
 When multiple time points are available, it is of interest to track the behavior of the most abundant clones.  A plot of the relative abundances of major clones, based on output from SonicLength, is shown below. For cases where only a single time point is available, the data is just plotted as unlinked points. 
@@ -95,6 +101,7 @@ if (has_longitudinal_data) {
 ```
 
 ***
+<P style="page-break-before: always">
 ## Integration sites near particular genes of interest
 
 Integration sites near genes that have been associated with adverse events are of particular interest. Thus, we have cataloged all integration sites for which a gene of interest is the nearest cancer-related gene.
@@ -121,6 +128,7 @@ badActorOut <- lapply(badActors, function(badActor){
 
 `r percent_cutoff <- 0.2`  
 ***
+<P style="page-break-before: always">
 ## Do any uniquely mapped clones account for greater than `r percent(percent_cutoff)` of the total?
 For some trials, a reporting criteria is whether any cell clones expand to account for greater than `r percent(percent_cutoff)` of all clones. This is summarized below for subject `r patient`. Abundance is estimated using the SonicLength method. Data such as this must, of course, be interpreted in the context of results from other assays. Distances reported refer to transcription start sites (5').
 
@@ -194,6 +202,7 @@ if( !any(is.multi.expanded) ) {
 ```
 
 ***
+<P style="page-break-before: always">
 ## What is the most frequently occuring gene types in subject `r patient`?
 
 ```{r wordlelist, fig.width=4, fig.height=4, fig.show='hide'}
@@ -230,9 +239,15 @@ if(any(!df.tab$isthere)) {
 message("The word bubbles are not generated for the following time point and cell types:\n", paste(df.tab$name[!df.tab$isthere], collapse="\n") )
 }
 df.tab <- subset(df.tab, isthere)
-df.kable <- matrix(df.tab$html, byrow=TRUE, ncol=3)
-df.kable[which(duplicated(c(df.kable)))] <- ""
-kable(df.kable, row.names=FALSE,format="html", escape=FALSE)
+## add page breaks if there are too many figures
+df.tab.list <- split(df.tab, (1:nrow(df.tab)-1) %/% 9)
+for( i in seq(df.tab.list) ) {
+    df.tab <- df.tab.list[[i]]
+	df.kable <- matrix(df.tab$html, byrow=TRUE, ncol=3)
+	df.kable[which(duplicated(c(df.kable)))] <- ""
+	print(kable(df.kable, row.names=FALSE,format="html", escape=FALSE))
+	cat("<P style=\"page-break-before: always\">\n")
+}
 ```
 
 ```{r knitexit}

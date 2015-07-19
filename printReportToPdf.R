@@ -49,7 +49,7 @@ text[i.marginleft] <- "margin-left:50px;"
 
 write(text, output)
 
-cmd <- sprintf("wkhtmltopdf -L 2mm %s %s", output, sub(".html$", "", output))
+cmd <- sprintf("wkhtmltopdf -L 2mm -s Letter %s %s", output, sub(".html$", "", output))
 message(cmd)
 stopifnot( system(cmd)==0 )
 unlink(output)

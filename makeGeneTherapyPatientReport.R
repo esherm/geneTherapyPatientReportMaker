@@ -55,12 +55,13 @@ source(file.path(codeDir, "read_site_totals.R"))
 source(file.path(codeDir, "populationInfo.R"))
 source(file.path(codeDir, "abundanceFilteringUtils.R"))
 
-unlink("CancerGeneList", force=TRUE, recursive=TRUE)
-cmd <- "git clone https://github.com/BushmanLab/CancerGeneList.git"
-message(cmd)
-stopifnot( system(cmd)==0 )
+if( !dir.exists("CancerGeneList") ) {
+    unlink("CancerGeneList", force=TRUE, recursive=TRUE)
+    cmd <- "git clone https://github.com/BushmanLab/CancerGeneList.git"
+    message(cmd)
+    stopifnot( system(cmd)==0 )
+}
 source("CancerGeneList/onco_genes.R")
-
 
 #### load datasets and process them before knit #### 
 message("\nReading csv from ", csvfile)
@@ -82,6 +83,8 @@ patient <- sets$Patient[1]
 # and for a single trial
 stopifnot(length(unique(sets$Trial)) == 1)
 trial <- sets$Trial[1]
+
+RDataFile <- paste(trial, patient, format(Sys.Date(), format="%Y%m%d"), "RData", sep=".")
 
 # all GTSP in the database
 stopifnot(nrow(sets) == length(unique(sampleName_GTSP$GTSP)))
@@ -165,7 +168,7 @@ refSeq_genes <- makeGRanges(
   getUCSCtable("refGene", "RefSeq Genes", freeze=freeze),
   freeze=freeze
 )
-save.image("debug.RData")
+save.image(RDataFile)
 
 standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites,
                                                    refSeq_genes,
@@ -345,10 +348,10 @@ if( nrow(sites.multi) > 0 ) {
 }
 
 
-write.csv(as.data.frame(standardizedDereplicatedSites),
-          file=paste(trial, patient, "uniquehit.csv", sep="."))
+##write.csv(as.data.frame(standardizedDereplicatedSites),
+##          file=paste(trial, patient, "uniquehit.csv", sep="."))
 
-save.image("debug.RData")
+save.image(RDataFile)
 ##end setting variables for markdown report
 
 fig.path <- paste(unique(trial), unique(patient),
@@ -370,10 +373,10 @@ markdownToHTML(mdfile, htmlfile, extensions=c('tables'),
                stylesheet=file.path(codeDir, "GTSPreport.css") )
 
 #### clean up ####
-unlink("CancerGeneList", force=TRUE, recursive=TRUE)
-unlink(mdfile, force=TRUE, recursive=TRUE)
+##unlink("CancerGeneList", force=TRUE, recursive=TRUE)
+##unlink(mdfile, force=TRUE, recursive=TRUE)
 
 
 message("\nReport ", htmlfile, " is generated from ", csvfile)
-save.image("debug.RData")
+save.image(RDataFile)
 

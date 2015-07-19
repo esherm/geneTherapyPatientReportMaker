@@ -363,6 +363,10 @@ tt, code, pre {
    font-family: 'DejaVu Sans Mono', 'Droid Sans Mono', 'Lucida Console', Consolas, Monaco, monospace;
 }
 
+td div, th div{
+    page-break-inside: avoid;
+}
+
 @media print {
    * {
 	  background: transparent !important;
@@ -393,7 +397,14 @@ tt, code, pre {
    tr, img {
 	  page-break-inside: avoid;
    }
- 
+   
+   table tbody tr td:before,
+   table tbody tr td:after {
+       content : "" ;
+       height : 4px ;
+       display : block ;
+   }
+   
    img {
 	  max-width: 100% !important;
    }
