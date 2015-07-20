@@ -39,13 +39,6 @@ library("reshape2")
 library("scales")
 library("intSiteRetriever")
 library("BiocParallel")
-## intSiteRetriever package was installed from github as follows
-## git clone https://github.com/BushmanLab/intSiteRetriever.git
-## cd intSiteRetriever
-## git checkout remove_multihitClusterID
-## R
-## devtools::document()
-## devtools::install()
 
 source(file.path(codeDir, "utilities.R"))
 source(file.path(codeDir, "specimen_management.R"))
@@ -67,6 +60,7 @@ cmd <- "git clone https://github.com/BushmanLab/intSiteCaller.git"
 message(cmd)
 stopifnot( system(cmd)==0 )
 source("intSiteCaller/hiReadsProcessor.R")
+source("intSiteCaller/standardization_based_on_clustering.R")
 
 #### load datasets and process them before knit #### 
 message("\nReading csv from ", csvfile)
@@ -119,7 +113,13 @@ uniqueSites.gr <- GRanges(seqnames=Rle(sites$chr),
 mcols(uniqueSites.gr) <- sites[,c("sampleName", "GTSP")]
 
 #standardize sites across all GTSPs
+isthere <- which("dplyr" == loadedNamespaces()) # temp work around  of
+#Known conflict with package:dplyr::count(), need to unload package if present
+# unloading and reloading the package
+if(length(isthere) > 0){detach("package:dplyr", unload = TRUE)}
 standardizedReplicatedSites <- standardizeSites(uniqueSites.gr)
+if(length(isthere) > 0){suppressMessages(library("dplyr"))}
+
 standardizedReplicatedSites$posid <- paste0(seqnames(standardizedReplicatedSites),
                                             strand(standardizedReplicatedSites),
                                             start(flank(standardizedReplicatedSites, -1, start=T)))
