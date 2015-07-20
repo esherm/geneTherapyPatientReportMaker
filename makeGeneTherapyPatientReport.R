@@ -55,14 +55,6 @@ source(file.path(codeDir, "read_site_totals.R"))
 source(file.path(codeDir, "populationInfo.R"))
 source(file.path(codeDir, "abundanceFilteringUtils.R"))
 
-if( !dir.exists("CancerGeneList") ) {
-    unlink("CancerGeneList", force=TRUE, recursive=TRUE)
-    cmd <- "git clone https://github.com/BushmanLab/CancerGeneList.git"
-    message(cmd)
-    stopifnot( system(cmd)==0 )
-}
-source("CancerGeneList/onco_genes.R")
-
 #### load datasets and process them before knit #### 
 message("\nReading csv from ", csvfile)
 sampleName_GTSP <- read.csv(csvfile)
@@ -187,10 +179,10 @@ standardizedDereplicatedSites <- getSitesInFeature(standardizedDereplicatedSites
                                                    feature.colnam="name2")
 
 #oncogenes
-oncogene_file <- "CancerGeneList/allonco_no_pipes.csv"
-oncogenes <- get_oncogene_from_file(oncogene_file)
+oncogenes <- scan(file= file.path(codeDir, "allonco_no_pipes.csv"), what='charactor')
+oncogenes <- oncogenes[!grepl("geneName", oncogenes, ignore.case=TRUE)]
 
-refSeq_oncogene <- refSeq_genes[is_onco_gene(refSeq_genes$name2, oncogenes)]
+refSeq_oncogene <- refSeq_genes[toupper(refSeq_genes$name2) %in% toupper(oncogenes)]
 
 standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites,
                                                    refSeq_oncogene,
@@ -199,12 +191,8 @@ standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites
                                                    feature.colnam="name2")
 
 
-wantedgenes <- toupper(c('HIVEP3', 'VAV3', 'NOTCH2', 'ITPR1', 'FOXP1', 'MDS1', 
-                         'C3ORF21', 'MAML3', 'TRIO', 'LOC441108', 'CXXC5', 'JARID2',
-                         'IKZF1', 'ANGPT1', 'MLLT3', 'CDH23', 'C10ORF54', 'SWAP70', 
-                         'ADRBK1', 'NINJ2', 'ETV6', 'HMGA2', 'CRADD', 'C14ORF43', 
-                         'PRKCB1', 'GAS7', 'RAI1', 'FMNL1', 'MSI2', 'SEPT9', 'PREX1', 
-                         'RUNX1', 'LMO2', 'CCND2', 'BMI1', 'EVI1'))
+wantedgenes <- scan(file=file.path(codeDir, "genes_adverse_event.csv"), what='charactor')
+wantedgenes <- wantedgenes[!grepl("geneName", wantedgenes, ignore.case=TRUE)]
 
 ## * in transcription units
 ## ~ within 50kb of a onco gene 

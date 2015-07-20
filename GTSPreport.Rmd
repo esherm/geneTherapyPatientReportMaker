@@ -204,6 +204,9 @@ if( !any(is.multi.expanded) ) {
 ***
 <P style="page-break-before: always">
 ## What is the most frequently occuring gene types in subject `r patient`?
+`r max_num_words=100`  
+
+The word clouds below show the abundances of integration sites as designated by genenames for each sample. Each word cloud is labled by the timepoint, celltype, and the range of sonic abundance for the top `r max_num_words` sites.
 
 ```{r wordlelist, fig.width=4, fig.height=4, fig.show='hide'}
 if(! require('PubMedWordcloud')) stop("Need PubMedWordcloud package")
@@ -217,7 +220,9 @@ df <- arrange(df, CellType, Timepoint)
 df.wordlist <- split(df, f=paste(df$Timepoint, df$CellType))
 df.wordlist <- df.wordlist[unique(paste(df$Timepoint, df$CellType))]
 max_num_words=100
-null <- sapply(seq(df.wordlist), function(i) 
+drange <- lapply(df.wordlist, function(df) paste(range(sort(df$freq, decreasing=TRUE)[1:100], na.rm=TRUE), collapse=":") )
+names(df.wordlist) <- paste(names(df.wordlist), drange)
+	null <- sapply(seq(df.wordlist), function(i) 
 plotWordCloud(df.wordlist[[i]],
               scale=c(3,0.5),
               min.freq=1, max.words=max_num_words, 
