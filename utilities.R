@@ -48,6 +48,7 @@ generate_word_bubble <- function(gene_abundance, max_num_words=500) {
 #' @param vector of dates to convert
 #' @return vector of days
 mdy_to_day <- function(dates) {
+  dates <- sub("\\.$", "", sub("([dmy][0-9]+\\.*[0-9]*).*", "\\1", dates))
   stopifnot(check_date_format(dates))
   mdy_letter <- get_mdy_letter(dates)
   mdy_value <- get_mdy_value(dates)
