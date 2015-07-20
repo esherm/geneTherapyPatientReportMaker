@@ -202,7 +202,7 @@ standardizedDereplicatedSites$geneMark <- ""
 ## ~ nearest is a known bad gene 
 isNearWanted <- standardizedDereplicatedSites$nearest_refSeq_gene %in% wantedgenes 
 isInWanted <- sapply( standardizedDereplicatedSites$inGene,
-                     function(txt) any(unlist(strsplit(txt, ',')) %in% oncogenes) )
+                     function(txt) any(unlist(strsplit(txt, ',')) %in% wantedgenes) )
 standardizedDereplicatedSites$geneMark <- ifelse(
     isNearWanted | isInWanted,
     paste0(standardizedDereplicatedSites$geneMark, "!"),

@@ -221,7 +221,7 @@ df.wordlist <- split(df, f=paste(df$Timepoint, df$CellType))
 df.wordlist <- df.wordlist[unique(paste(df$Timepoint, df$CellType))]
 max_num_words=100
 drange <- lapply(df.wordlist, function(df) paste(range(sort(df$freq, decreasing=TRUE)[1:100], na.rm=TRUE), collapse=":") )
-names(df.wordlist) <- paste(names(df.wordlist), drange)
+names(df.wordlist) <- paste(names(df.wordlist), "<strong>", drange, "</strong>")
 	null <- sapply(seq(df.wordlist), function(i) 
 plotWordCloud(df.wordlist[[i]],
               scale=c(3,0.5),
