@@ -37,14 +37,8 @@ library("reldist")
 library("sonicLength")
 library("reshape2")
 library("scales")
-library("intSiteRetriever") 
-## intSiteRetriever package was installed from github as follows
-## git clone https://github.com/BushmanLab/intSiteRetriever.git
-## cd intSiteRetriever
-## git checkout remove_multihitClusterID
-## R
-## devtools::document()
-## devtools::install()
+library("intSiteRetriever")
+library("BiocParallel")
 
 source(file.path(codeDir, "utilities.R"))
 source(file.path(codeDir, "specimen_management.R"))
@@ -61,6 +55,12 @@ message(cmd)
 stopifnot( system(cmd)==0 )
 source("CancerGeneList/onco_genes.R")
 
+unlink("intSiteCaller", force=TRUE, recursive=TRUE)
+cmd <- "git clone https://github.com/BushmanLab/intSiteCaller.git"
+message(cmd)
+stopifnot( system(cmd)==0 )
+source("intSiteCaller/hiReadsProcessor.R")
+source("intSiteCaller/standardization_based_on_clustering.R")
 
 #### load datasets and process them before knit #### 
 message("\nReading csv from ", csvfile)
@@ -113,7 +113,13 @@ uniqueSites.gr <- GRanges(seqnames=Rle(sites$chr),
 mcols(uniqueSites.gr) <- sites[,c("sampleName", "GTSP")]
 
 #standardize sites across all GTSPs
+isthere <- which("dplyr" == loadedNamespaces()) # temp work around  of
+#Known conflict with package:dplyr::count(), need to unload package if present
+# unloading and reloading the package
+if(length(isthere) > 0){detach("package:dplyr", unload = TRUE)}
 standardizedReplicatedSites <- standardizeSites(uniqueSites.gr)
+if(length(isthere) > 0){suppressMessages(library("dplyr"))}
+
 standardizedReplicatedSites$posid <- paste0(seqnames(standardizedReplicatedSites),
                                             strand(standardizedReplicatedSites),
                                             start(flank(standardizedReplicatedSites, -1, start=T)))
@@ -273,6 +279,20 @@ if( nrow(sites.multi) > 0 ) {
                       fragLength=sites.multi$length,
                       replicate=sites.multi$replicate)
     
+    if(use.sonicLength){
+      estAbund.uniqueFragLen <- function(location, fragLen, replicate=NULL){
+        if(is.null(replicate)){replicate <- 1}  #Need for downstream workflow
+        dfr <- data.frame(location = location, fragLen = fragLen, 
+                          replicate = replicate)
+        dfr_dist <- distinct(dfr)
+        site_list <- split(dfr_dist, dfr_dist$location)
+        theta <- sapply(site_list, function(x){nrow(x)})
+        theta <- theta[unique(dfr$location)]
+        list(theta=theta)
+      }
+      estAbund <- estAbund.uniqueFragLen
+    }
+    
     if(length(unique(dfr$replicate))==1){
         estimatedAbundances <- estAbund(dfr$ID, dfr$fragLength)
     }else{
@@ -315,6 +335,7 @@ markdownToHTML(mdfile, htmlfile, extensions=c('tables'),
 
 #### clean up ####
 unlink("CancerGeneList", force=TRUE, recursive=TRUE)
+unlink("intSiteCaller", force=TRUE, recursive=TRUE)
 unlink(mdfile, force=TRUE, recursive=TRUE)
 
 message("\nReport ", htmlfile, " is generated from ", csvfile)
