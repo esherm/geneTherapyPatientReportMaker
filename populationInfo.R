@@ -1,5 +1,5 @@
 calculateShannon <- function(dereplicated){
-  library("vegan")
+  stopifnot(require(vegan))
   shannonInput <- as.data.frame(mcols(dereplicated)[,c("posid", "Timepoint", "estAbund")])
   
   diversity(acast(shannonInput, Timepoint~posid, fill=0, value.var="estAbund",
@@ -7,7 +7,7 @@ calculateShannon <- function(dereplicated){
 }
 
 calculateChao <- function(replicatedSites, dereplicatedSites){
-  library("vegan")
+  stopifnot(require(vegan))
   chaoInput <- as.data.frame(merge(mcols(replicatedSites[,c("posid", "replicate")]),
                                           mcols(dereplicatedSites[,c("posid", "estAbund")])))
   
@@ -27,7 +27,7 @@ calculateChao <- function(replicatedSites, dereplicatedSites){
 }
 
 calculateGini <- function(dereplicated){
-  library("reldist")
+  stopifnot(require(reldist))
   gini(dereplicated$estAbundProp)
 }
 
@@ -44,9 +44,9 @@ getPopulationInfo <- function(replicated, dereplicated, splitBy){
     #can iterate through standardizedReplicatedSites and standardizedDereplicatedSites using GTSP#
     replicatedSites <- replicated[[name]]
     dereplicatedSites <- dereplicated[[name]]
-
+    
     data.frame("group"=name,
-               "S.chao1"=calculateChao(replicatedSites, dereplicatedSites),
+               ##"S.chao1"=calculateChao(replicatedSites, dereplicatedSites), 
                "Gini"=calculateGini(dereplicatedSites),
                "Shannon"=calculateShannon(dereplicatedSites))
   })
