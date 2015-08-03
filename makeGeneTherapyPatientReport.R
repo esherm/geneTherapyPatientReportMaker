@@ -63,8 +63,13 @@ message("\nGenerating report from the following sets")
 print(sampleName_GTSP)
 
 junk <- sapply(dbListConnections(MySQL()), dbDisconnect)
-dbConn <- dbConnect(MySQL(), group="intSitesDev237")
-stopifnot(all(setNameExists(sampleName_GTSP$sampleName, dbConn)))
+dbConn <- dbConnect(MySQL(), group="dryga-test-db")
+info <- dbGetInfo(dbConn)
+dbConn <- src_sql("mysql", dbConn, info = info)
+
+sampleName_GTSP$refGenome <- rep("hg18", nrow(sampleName_GTSP))
+
+stopifnot(all(setNameExists(sampleName_GTSP, dbConn)))
 
 read_sites_sample_GTSP <- get_read_site_totals(sampleName_GTSP, dbConn)
 
@@ -87,18 +92,18 @@ sets[sets$Timepoint=="NULL", "Timepoint"] = "d0"
 sets <- merge(sets, read_sites_sample_GTSP)
 sets$Timepoint <- sortFactorTimepoints(sets$Timepoint)
 
-junk <- sapply(dbListConnections(MySQL()), dbDisconnect)
-dbConn <- dbConnect(MySQL(), group="intSitesDev237")
-refGenomes <- getRefGenome(sampleName_GTSP$sampleName, dbConn)
 # at present the whole report is done for one genome
-stopifnot(length(unique(refGenomes$refGenome))==1)
-freeze <- refGenomes[1, "refGenome"]
+stopifnot(length(unique(sampleName_GTSP$refGenome))==1)
+freeze <- sampleName_GTSP[1, "refGenome"]
 
 ##==========GET AND PERFORM BASIC DEREPLICATION/SONICABUND ON SITES=============
 message("Fetching unique sites and estimating abundance")
 junk <- sapply(dbListConnections(MySQL()), dbDisconnect)
-dbConn <- dbConnect(MySQL(), group="intSitesDev237")
-sites <- merge(getUniquePCRbreaks(sampleName_GTSP$sampleName, dbConn), sampleName_GTSP)
+dbConn <- dbConnect(MySQL(), group="dryga-test-db")
+info <- dbGetInfo(dbConn)
+dbConn <- src_sql("mysql", dbConn, info = info)
+sites <- merge(getUniquePCRbreaks(sampleName_GTSP, dbConn), sampleName_GTSP)
+names(sites)[names(sites)=="position"] <- "integration"
 
 #we really don't care about seqinfo - we just want a GRange object for easy manipulation
 uniqueSites.gr <- GRanges(seqnames=Rle(sites$chr),
@@ -309,8 +314,10 @@ timepointPopulationInfo <- melt(timepointPopulationInfo, "group")
 #==================Get abundance for multihit events=====================
 message("Fetching multihit sites and estimating abundance")
 junk <- sapply(dbListConnections(MySQL()), dbDisconnect)
-dbConn <- dbConnect(MySQL(), group="intSitesDev237")
-sites.multi <- merge( suppressWarnings(getMultihitLengths(sampleName_GTSP$sampleName, dbConn)), sampleName_GTSP)
+dbConn <- dbConnect(MySQL(), group="dryga-test-db")
+info <- dbGetInfo(dbConn)
+dbConn <- src_sql("mysql", dbConn, info = info)
+sites.multi <- merge( suppressWarnings(getMultihitLengths(sampleName_GTSP, dbConn)), sampleName_GTSP)
 if( nrow(sites.multi) > 0 ) {
     sites.multi <- sites.multi %>%
     group_by(multihitID) %>%
@@ -334,10 +341,6 @@ if( nrow(sites.multi) > 0 ) {
     mutate(Rank=rank(-estAbund, ties.method="max"))
 
 }
-
-
-##write.csv(as.data.frame(standardizedDereplicatedSites),
-##          file=paste(trial, patient, "uniquehit.csv", sep="."))
 
 save.image(RDataFile)
 ##end setting variables for markdown report
