@@ -1,5 +1,3 @@
-##source("intSiteRetriever/R/intSiteRetriever.R")
-
 #' for a given df with 2 cols: sampleName and GTSP
 #' gets counts from intSite DB and collapse replicates.
 #' @param df with cols: sampleName, GTSP
@@ -14,8 +12,9 @@ get_read_site_totals <- function(sampleName_GTSP, connection) {
 #' numbers.
 #' @return df with 2 cols: GTSP, column_name
 get_count_per_GTSP <- function(sampleName_GTSP, database_function, column_name, connection) {
-    sample_count <- database_function(sampleName_GTSP$sampleName, connection)
-    names(sample_count) <- c("sampleName", column_name)
+    # workaround suppressWarnings: type in DB of count int lead to warning when casting to num in R
+    sample_count <- suppressWarnings(database_function(sampleName_GTSP, connection))
+    names(sample_count) <- c("sampleName", "refGenome", column_name)
     sample_count_GTSP <- merge(sample_count, sampleName_GTSP)
     aggregate(sample_count_GTSP[column_name], sample_count_GTSP['GTSP'], FUN=sum)
 }
