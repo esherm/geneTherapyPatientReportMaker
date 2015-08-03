@@ -135,11 +135,9 @@ standardizedReplicatedSites <- prepSiteList(standardizedReplicatedSites)
 standardizedDereplicatedSites <- prepSiteList(standardizedDereplicatedSites)
 standardizedDereplicatedSites <- flank(standardizedDereplicatedSites, -1, start=TRUE)
 
-std_reduced_GTSP_sites <- lapply(split(standardizedDereplicatedSites, 
-                                       standardizedDereplicatedSites$GTSP), 
-                                 function(x){reduce(x, min.gapwidth = 0L)})
-
-unique_sites_per_GTSP <- sapply(std_reduced_GTSP_sites, length)
+unique_sites_per_GTSP <- sapply(split(standardizedDereplicatedSites,
+                                      standardizedDereplicatedSites$GTSP),
+                                function(x){length(unique(x$posid))})
 unique_sites_per_GTSP <- data.frame("GTSP" = names(unique_sites_per_GTSP),
                                     "UniqueSites" = unique_sites_per_GTSP)
 sets <- merge(sets, unique_sites_per_GTSP, by = "GTSP")
@@ -157,11 +155,9 @@ timepointPopulationInfo <- getPopulationInfo(standardizedReplicatedSites,
                                              standardizedDereplicatedSites,
                                              "Timepoint")
 
-std_reduced_timepoint_sites <- lapply(split(standardizedDereplicatedSites, 
-                                            standardizedDereplicatedSites$Timepoint),
-                            function(x){reduce(x, min.gapwidth = 0L)})
-
-timepointPopulationInfo$UniqueSites <- sapply(std_reduced_timepoint_sites, length)
+timepointPopulationInfo$UniqueSites <- sapply(split(standardizedDereplicatedSites, 
+                                                    standardizedDereplicatedSites$Timepoint),
+                                              function(x){length(unique(x$posid))})
 
 
 #=======================ANNOTATE DEREPLICATED SITES==========================
