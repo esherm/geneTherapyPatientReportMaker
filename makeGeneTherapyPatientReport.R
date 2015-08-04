@@ -138,6 +138,13 @@ standardizedReplicatedSites <- prepSiteList(standardizedReplicatedSites)
 standardizedDereplicatedSites <- prepSiteList(standardizedDereplicatedSites)
 standardizedDereplicatedSites <- flank(standardizedDereplicatedSites, -1, start=TRUE)
 
+unique_sites_per_GTSP <- sapply(split(standardizedDereplicatedSites,
+                                      standardizedDereplicatedSites$GTSP),
+                                function(x){length(unique(x$posid))})
+unique_sites_per_GTSP <- data.frame("GTSP" = names(unique_sites_per_GTSP),
+                                    "UniqueSites" = unique_sites_per_GTSP)
+sets <- merge(sets, unique_sites_per_GTSP, by = "GTSP")
+
 #============CALCULATE POPULATION SIZE/DIVERSITY INFORMATION=================
 populationInfo <- getPopulationInfo(standardizedReplicatedSites,
                                     standardizedDereplicatedSites,
@@ -151,9 +158,9 @@ timepointPopulationInfo <- getPopulationInfo(standardizedReplicatedSites,
                                              standardizedDereplicatedSites,
                                              "Timepoint")
 
-timepointPopulationInfo$UniqueSites <- sapply(split(standardizedDereplicatedSites,
+timepointPopulationInfo$UniqueSites <- sapply(split(standardizedDereplicatedSites, 
                                                     standardizedDereplicatedSites$Timepoint),
-                                              length)
+                                              function(x){length(unique(x$posid))})
 
 
 #=======================ANNOTATE DEREPLICATED SITES==========================
