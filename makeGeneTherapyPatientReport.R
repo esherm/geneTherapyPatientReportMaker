@@ -4,6 +4,8 @@ options(stringsAsFactors = FALSE)
 csvfile <- "sampleName_GTSP.csv"
 args <- commandArgs(trailingOnly=TRUE)
 
+use.sonicLength <- TRUE
+
 if( length(args)==1 ) {
   csvfile <- args[1]
 }
@@ -17,8 +19,7 @@ if( length(args)==2 & args[2] == "-s"){
 if( !file.exists(csvfile) ) stop(csvfile, "not found")
 
 codeDir <- dirname(sub("--file=", "", grep("--file=", commandArgs(trailingOnly=FALSE), value=T)))
-if( length(codeDir)!=1 ) codeDir <- list.files(path="~", pattern="geneTherapyPatientReportMaker", recursive=TRUE, include.dirs=TRUE, full.names=TRUE)
-if( length(codeDir)!=1 ) codeDir <- "~/geneTherapyPatientReportMaker"
+if( length(codeDir)!=1 ) codeDir <- list.files(path="~", pattern="geneTherapyPatientReportMaker$", recursive=TRUE, include.dirs=TRUE, full.names=TRUE)
 stopifnot(file.exists(file.path(codeDir, "GTSPreport.css")))
 stopifnot(file.exists(file.path(codeDir, "GTSPreport.Rmd")))
 
@@ -38,28 +39,18 @@ library("reshape2")
 library("scales")
 library("intSiteRetriever")
 library("BiocParallel")
+library(devtools)
 
 source(file.path(codeDir, "utilities.R"))
 source(file.path(codeDir, "specimen_management.R"))
 source(file.path(codeDir, "estimatedAbundance.R"))
-source(file.path(codeDir, "dereplicateSites.R"))
-source(file.path(codeDir, "standardizeSites.R"))
 source(file.path(codeDir, "read_site_totals.R"))
 source(file.path(codeDir, "populationInfo.R"))
 source(file.path(codeDir, "abundanceFilteringUtils.R"))
 
-unlink("CancerGeneList", force=TRUE, recursive=TRUE)
-cmd <- "git clone https://github.com/BushmanLab/CancerGeneList.git"
-message(cmd)
-stopifnot( system(cmd)==0 )
-source("CancerGeneList/onco_genes.R")
-
-unlink("intSiteCaller", force=TRUE, recursive=TRUE)
-cmd <- "git clone https://github.com/BushmanLab/intSiteCaller.git"
-message(cmd)
-stopifnot( system(cmd)==0 )
-source("intSiteCaller/hiReadsProcessor.R")
-source("intSiteCaller/standardization_based_on_clustering.R")
+url <- "https://raw.githubusercontent.com/BushmanLab/intSiteCaller/master/"
+source_url(paste0(url, "hiReadsProcessor.R"))
+source_url(paste0(url, "standardization_based_on_clustering.R"))
 
 #### load datasets and process them before knit #### 
 message("\nReading csv from ", csvfile)
@@ -81,6 +72,8 @@ patient <- sets$Patient[1]
 # and for a single trial
 stopifnot(length(unique(sets$Trial)) == 1)
 trial <- sets$Trial[1]
+
+RDataFile <- paste(trial, patient, format(Sys.Date(), format="%Y%m%d"), "RData", sep=".")
 
 # all GTSP in the database
 stopifnot(nrow(sets) == length(unique(sampleName_GTSP$GTSP)))
@@ -143,6 +136,7 @@ standardizedDereplicatedSites <- lapply(standardizedReplicatedSites, function(si
 
 standardizedReplicatedSites <- prepSiteList(standardizedReplicatedSites)
 standardizedDereplicatedSites <- prepSiteList(standardizedDereplicatedSites)
+standardizedDereplicatedSites <- flank(standardizedDereplicatedSites, -1, start=TRUE)
 
 #============CALCULATE POPULATION SIZE/DIVERSITY INFORMATION=================
 populationInfo <- getPopulationInfo(standardizedReplicatedSites,
@@ -164,21 +158,34 @@ timepointPopulationInfo$UniqueSites <- sapply(split(standardizedDereplicatedSite
 
 #=======================ANNOTATE DEREPLICATED SITES==========================
 #standard refSeq genes
+message("Annotating unique hit sites")
 refSeq_genes <- makeGRanges(
   getUCSCtable("refGene", "RefSeq Genes", freeze=freeze),
   freeze=freeze
 )
+save.image(RDataFile)
 
 standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites,
                                                    refSeq_genes,
                                                    colnam="nearest_refSeq_gene",
                                                    feature.colnam="name2")
 
-#oncogenes
-oncogene_file <- "CancerGeneList/allonco_no_pipes.csv"
-oncogenes <- get_oncogene_from_file(oncogene_file)
+standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites,
+                                                   refSeq_genes,
+                                                   colnam="nearest_refSeq_gene",
+                                                   side="5p",
+                                                   feature.colnam="name2")
 
-refSeq_oncogene <- refSeq_genes[is_onco_gene(refSeq_genes$name2, oncogenes)]
+standardizedDereplicatedSites <- getSitesInFeature(standardizedDereplicatedSites,
+                                                   refSeq_genes,
+                                                   colnam="inGene",
+                                                   feature.colnam="name2")
+
+#oncogenes
+oncogenes <- scan(file= file.path(codeDir, "allonco_no_pipes.csv"), what='charactor')
+oncogenes <- oncogenes[!grepl("geneName", oncogenes, ignore.case=TRUE)]
+
+refSeq_oncogene <- refSeq_genes[toupper(refSeq_genes$name2) %in% toupper(oncogenes)]
 
 standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites,
                                                    refSeq_oncogene,
@@ -186,6 +193,44 @@ standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites
                                                    side="5p",
                                                    feature.colnam="name2")
 
+
+wantedgenes <- scan(file=file.path(codeDir, "genes_adverse_event.csv"), what='charactor')
+wantedgenes <- wantedgenes[!grepl("geneName", wantedgenes, ignore.case=TRUE)]
+
+## * in transcription units
+## ~ within 50kb of a onco gene 
+## ! nearest is a known bad gene 
+standardizedDereplicatedSites$geneMark <- ""
+
+## ~ nearest is a known bad gene 
+isNearWanted <- standardizedDereplicatedSites$nearest_refSeq_gene %in% wantedgenes 
+isInWanted <- sapply( standardizedDereplicatedSites$inGene,
+                     function(txt) any(unlist(strsplit(txt, ',')) %in% wantedgenes) )
+standardizedDereplicatedSites$geneMark <- ifelse(
+    isNearWanted | isInWanted,
+    paste0(standardizedDereplicatedSites$geneMark, "!"),
+    standardizedDereplicatedSites$geneMark )
+
+## ~ within 50kb of a onco gene 
+isNearOnco <- (standardizedDereplicatedSites$nearest_refSeq_gene %in% oncogenes &
+               abs(standardizedDereplicatedSites$nearest_refSeq_geneDist) < 50000 )
+isInOnco <- sapply( standardizedDereplicatedSites$inGene,
+                   function(txt) any(unlist(strsplit(txt, ',')) %in% oncogenes) )
+standardizedDereplicatedSites$geneMark <- ifelse(
+    isNearOnco | isInOnco,
+    paste0(standardizedDereplicatedSites$geneMark, "~"),
+    standardizedDereplicatedSites$geneMark )
+
+## * in transcription units
+standardizedDereplicatedSites$geneMark <- ifelse(
+    toupper(standardizedDereplicatedSites$inGene)!="FALSE",
+    paste0(standardizedDereplicatedSites$geneMark, "*"),
+    standardizedDereplicatedSites$geneMark)
+
+## attach gene marks
+standardizedDereplicatedSites$nearest_refSeq_gene <- paste0(
+    standardizedDereplicatedSites$nearest_refSeq_gene,
+    standardizedDereplicatedSites$geneMark)
 
 #===================GENERATE EXPANDED CLONE DATAFRAMES======================
 #barplots
@@ -308,10 +353,10 @@ if( nrow(sites.multi) > 0 ) {
 }
 
 
-write.csv(as.data.frame(standardizedDereplicatedSites),
-          file=paste(trial, patient, "uniquehit.csv", sep="."))
+##write.csv(as.data.frame(standardizedDereplicatedSites),
+##          file=paste(trial, patient, "uniquehit.csv", sep="."))
 
-save.image("debug.RData")
+save.image(RDataFile)
 ##end setting variables for markdown report
 
 fig.path <- paste(unique(trial), unique(patient),
@@ -332,10 +377,7 @@ markdownToHTML(mdfile, htmlfile, extensions=c('tables'),
                options=c(markdownHTMLOptions(defaults=T), "toc"),
                stylesheet=file.path(codeDir, "GTSPreport.css") )
 
-#### clean up ####
-unlink("CancerGeneList", force=TRUE, recursive=TRUE)
-unlink("intSiteCaller", force=TRUE, recursive=TRUE)
-unlink(mdfile, force=TRUE, recursive=TRUE)
 
 message("\nReport ", htmlfile, " is generated from ", csvfile)
+save.image(RDataFile)
 
