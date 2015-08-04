@@ -3,8 +3,9 @@
 #' @param df with cols: sampleName, GTSP
 get_read_site_totals <- function(sampleName_GTSP, connection) {
     reads <- get_count_per_GTSP(sampleName_GTSP, getUniqueSiteReadCounts, "TotalReads", connection)
-    sites <- get_count_per_GTSP(sampleName_GTSP, getUniqueSiteCounts, "UniqueSites", connection)
-    merge(reads, sites)
+    reads
+    #sites <- get_count_per_GTSP(sampleName_GTSP, getUniqueSiteCounts, "UniqueSites", connection)
+    #merge(reads, sites)
 }
 
 
