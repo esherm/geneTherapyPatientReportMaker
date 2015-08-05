@@ -1,5 +1,5 @@
 #### geneTherapyPatientReportMaker
-For a specific patient, report integration near oncogenes and potentially expanded clones across cell types and multiple time points
+For a specific patient, report integration near oncogenes and potentially expanded clones across cell types and multiple time points. Abundance by default is based on unique fragment length.
 	
 #### Input
 A csv file such as `sampleName_GTSP.csv` to describe the replicates and the samples.
@@ -43,7 +43,7 @@ GTSP0308-3,GTSP0308,pFR03
 ```
 Rscript makeGeneTherapyPatientReport.R                     #read in sampleName_GTSP.csv by default
 Rscript path/to/makeGeneTherapyPatientReport.R pFR03.csv   #generated above
-Rscript path/to/makeGeneTherapyPatientReport.R pFR03.csv -s #determine abundance by fragment length only
+Rscript path/to/makeGeneTherapyPatientReport.R pFR03.csv -s #determine abundance by sonicLength package (Berry, C. 2012)
 ```
 
 - 3 `check_gtsp_patient.R`: get trial and patient information for the GTSPxxxx folders
