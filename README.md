@@ -52,10 +52,20 @@ Rscript path/to/makeGeneTherapyPatientReport.R                         #check cu
 Rscript path/to/makeGeneTherapyPatientReport.R  ~/Frances/run20150505  #check a run folder
 ```
 
-#### Note
-Do NOT run multiple instances within the same folder
+Reference genome is specified by `--ref_genome` or `-r` option with default of `hg18`:
+```
+Rscript path/to/makeGeneTherapyPatientReport.R  ~/Frances/run20150505  --ref_genome hg19
+```
 
-#### Database connfig file location
+To connect to database .my.cnf should be present in ~ and group can be changed with `--group` or `-g` option
+with default of `intsites_miseq`:
+```
+Rscript path/to/makeGeneTherapyPatientReport.R  ~/Frances/run20150505  --group test_db
+```
+
+
+
+#### Database config file location
 
 config file should be in home directory and called .my.cnf,
 e.g. ~/.my.cnf
@@ -63,29 +73,17 @@ e.g. ~/.my.cnf
 The .my.cnf format is as follows:
 
 ```
-[intSitesDEV-dev]
+[GROUP_NAME]
 user=YYYYYYY
 password=XXXXXX
-host=microb98.med.upenn.edu
+host=microbYYYY.med.upenn.edu
 port=3309
-database=intsitesdev
+database=intsites_miseq
 ```
 
 #### Dependencies
 
-intSiteRetriever : https://github.com/esherm/intSiteRetriever 
-(at present get the project in current folder:
-```
-git clone https://github.com/esherm/intSiteRetriever
-```)
-hiAnnotator
-reldist
-
-Cancer Gene list:
-
-```
-git clone https://github.com/anatolydryga/CancerGeneList.git
-```
+...
 
 #### Testing
 
