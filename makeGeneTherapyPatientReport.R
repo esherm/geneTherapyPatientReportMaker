@@ -11,7 +11,7 @@ if( length(args)==1 ) {
 }
 if( length(args)==2 & args[2] == "-s"){
   csvfile <- args[1]
-  use.sonicLength <- TRUE
+  use.sonicLength <- FALSE
 }else if(length(args)==2 & args[2] != "-s"){
   message("Incorrect flags.")
   stop()
