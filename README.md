@@ -57,10 +57,16 @@ Reference genome is specified by `--ref_genome` or `-r` option with default of `
 Rscript path/to/makeGeneTherapyPatientReport.R  ~/Frances/run20150505  --ref_genome hg19
 ```
 
-To connect to database .my.cnf should be present in ~ and group can be changed with `--group` or `-g` option
-with default of `intsites_miseq`:
+To connect to databases .my.cnf should be present in ~ and group can be changed with `--sites_group` option
+with default of `intsites_miseq` for integration sites DB:
 ```
-Rscript path/to/makeGeneTherapyPatientReport.R  ~/Frances/run20150505  --group test_db
+Rscript path/to/makeGeneTherapyPatientReport.R  ~/Frances/run20150505  --sites_group test_db
+```
+
+Metadata for GTSP is held in specimen_management DB and can be changed with `--gtsp_group` option
+with default "specimen_management":
+```
+Rscript path/to/makeGeneTherapyPatientReport.R  ~/Frances/run20150505  --gtsp_group gtsp_group_in_my_cnf
 ```
 
 
