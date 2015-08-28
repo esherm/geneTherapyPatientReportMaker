@@ -6,7 +6,7 @@ parser <- ArgumentParser(description="Gene Therapy Patient Report for Single Pat
 parser$add_argument("sample_gtsp", nargs='?', default='sampleName_GTSP.csv')
 parser$add_argument("-s", action='store_true', help="abundance by sonicLength package (Berry, C. 2012)")
 parser$add_argument("--ref_genome", default="hg18", help="reference genome used for all samples")
-parser$add_argument("--sites_group", default="intsites_miseq", help="group to use for integration sites db from ~/.my.cnf")
+parser$add_argument("--sites_group", default="intsites_miseq.read", help="group to use for integration sites db from ~/.my.cnf")
 parser$add_argument("--gtsp_group", default="specimen_management", help="group to use for specimen management GTSP db from ~/.my.cnf")
 arguments <- parser$parse_args()
 
