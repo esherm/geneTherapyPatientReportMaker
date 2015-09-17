@@ -1,49 +1,74 @@
 options(stringsAsFactors = FALSE)
 
-library(argparse)
+#' set all argumentgs for the script
+#' @return list of argumentgs
+#' @example set_args()
+#'          set_args(c("--ref_genome", "mm9"))
+#' Rscript ~/geneTherapyPatientReportMaker/makeGeneTherapyPatientReport.R --ref_genome hg19 hs.csv
+#' Rscript ~/geneTherapyPatientReportMaker/makeGeneTherapyPatientReport.R --ref_genome mm9 mm.csv
+set_args <- function(...) {
+    ## arguments from command line
+    suppressMessages(library(argparse))
+    parser <- ArgumentParser(description="Gene Therapy Patient Report for Single Patient")
+    parser$add_argument("sample_gtsp", nargs='?', default='sampleName_GTSP.csv')
+    parser$add_argument("-s", action='store_true', help="abundance by sonicLength package (Berry, C. 2012)")
+    parser$add_argument("-f", "--ref_genome", default="hg18", help="reference genome used for all samples")
+    parser$add_argument("--sites_group", default="intsites_miseq.read", help="group to use for integration sites db from ~/.my.cnf")
+    parser$add_argument("--gtsp_group", default="specimen_management", help="group to use for specimen management GTSP db from ~/.my.cnf")
+    arguments <- parser$parse_args(...)
+    
+    ## gene files
+    arguments$oncoGeneFile <- ""
+    if(grepl("^hg", arguments$ref_genome)) arguments$oncoGeneFile <- "allonco_no_pipes.csv"
+    if(grepl("^mm", arguments$ref_genome)) arguments$oncoGeneFile <- "allonco_no_pipes.mm.csv"
+    stopifnot( arguments$ref_genome!="" )
+    
+    arguments$adverseGeneFile <- "genes_adverse_event.csv"
+    
+    ## code dir past to Rscript
+    codeDir <- dirname(sub("--file=", "", grep("--file=", commandArgs(trailingOnly=FALSE), value=T)))
+    if( length(codeDir)!=1 ) codeDir <- list.files(path="~", pattern="geneTherapyPatientReportMaker$", recursive=TRUE, include.dirs=TRUE, full.names=TRUE)
+    stopifnot(file.exists(file.path(codeDir, "GTSPreport.css")))
+    stopifnot(file.exists(file.path(codeDir, "GTSPreport.Rmd")))
+    stopifnot(file.exists(file.path(codeDir, arguments$oncoGeneFile)))
+    arguments$codeDir <- codeDir
+    
+    return(arguments)
+}
+##set_args()
+arguments <- set_args()
+print(arguments)
 
-parser <- ArgumentParser(description="Gene Therapy Patient Report for Single Patient")
-parser$add_argument("sample_gtsp", nargs='?', default='sampleName_GTSP.csv')
-parser$add_argument("-s", action='store_true', help="abundance by sonicLength package (Berry, C. 2012)")
-parser$add_argument("--ref_genome", default="hg18", help="reference genome used for all samples")
-parser$add_argument("--sites_group", default="intsites_miseq.read", help="group to use for integration sites db from ~/.my.cnf")
-parser$add_argument("--gtsp_group", default="specimen_management", help="group to use for specimen management GTSP db from ~/.my.cnf")
-arguments <- parser$parse_args()
-
-args <- commandArgs(trailingOnly=TRUE)
-
-# defaults:
+## defaults:
 use.sonicLength <-  ! arguments$s
 db_group_sites <- arguments$sites_group
 db_group_gtsp <- arguments$gtsp_group
 ref_genome <- arguments$ref_genome
+codeDir <- arguments$codeDir
+
 #### INPUTS: csv file/table GTSP to sampleName ####
 csvfile <- arguments$sample_gtsp
 
 if( !file.exists(csvfile) ) stop(csvfile, "not found")
 
-codeDir <- dirname(sub("--file=", "", grep("--file=", commandArgs(trailingOnly=FALSE), value=T)))
-if( length(codeDir)!=1 ) codeDir <- list.files(path="~", pattern="geneTherapyPatientReportMaker$", recursive=TRUE, include.dirs=TRUE, full.names=TRUE)
-stopifnot(file.exists(file.path(codeDir, "GTSPreport.css")))
-stopifnot(file.exists(file.path(codeDir, "GTSPreport.Rmd")))
-
 #### load up require packages + objects #### 
-library("RMySQL") #also loads DBI
-library("plyr")
-library("dplyr")
-library("stringr")
-library("markdown")
-library("knitr")
-library("PubMedWordcloud")
-library("hiAnnotator")
-library("ggplot2")
-library("reldist")
-library("sonicLength")
-library("reshape2")
-library("scales")
-library("intSiteRetriever")
-library("BiocParallel")
-library(devtools)
+libs <- c("RMySQL",
+          "plyr",
+          "dplyr",
+          "stringr",
+          "reshape2",
+          "scales",
+          "ggplot2",
+          "devtools",
+          "reldist",
+          "hiAnnotator",
+          "sonicLength",
+          "intSiteRetriever",
+          "BiocParallel",
+          "PubMedWordcloud",
+          "markdown",
+          "knitr")
+null <- suppressMessages(sapply(libs, library, character.only=TRUE))
 
 source(file.path(codeDir, "utilities.R"))
 source(file.path(codeDir, "specimen_management.R"))
@@ -60,6 +85,7 @@ source_url(paste0(url, "standardization_based_on_clustering.R"))
 message("\nReading csv from ", csvfile)
 sampleName_GTSP <- read.csv(csvfile)
 stopifnot(all(c("sampleName", "GTSP") %in% colnames(sampleName_GTSP)))
+sampleName_GTSP$refGenome <- ref_genome
 message("\nGenerating report from the following sets")
 print(sampleName_GTSP)
 
@@ -67,9 +93,15 @@ dbConn <- dbConnect(MySQL(), group=db_group_sites)
 info <- dbGetInfo(dbConn)
 dbConn <- src_sql("mysql", dbConn, info = info)
 
-sampleName_GTSP$refGenome <- rep(ref_genome, nrow(sampleName_GTSP))
-
-stopifnot(all(setNameExists(sampleName_GTSP, dbConn)))
+if( !all(setNameExists(sampleName_GTSP, dbConn)) ) {
+    sampleNameIn <- paste(sprintf("'%s'", sampleName_GTSP$sampleName),
+                          collapse=",")
+    q <- sprintf("SELECT * FROM samples WHERE sampleName IN (%s)", sampleNameIn)
+    message("\nChecking database:\n",q,"\n")
+    write.table(tbl(dbConn, sql(q)), quote=FALSE, row.name=FALSE)
+    message()
+    stop("Was --ref_genome specified correctly or did query return all entries")
+}
 
 read_sites_sample_GTSP <- get_read_site_totals(sampleName_GTSP, dbConn)
 
@@ -88,6 +120,7 @@ stopifnot(nrow(sets) == length(unique(sampleName_GTSP$GTSP)))
 
 ##end INPUTS
 sets[sets$Timepoint=="NULL", "Timepoint"] = "d0"
+sets[sets$Timepoint=="", "Timepoint"] = "d0"
 
 sets <- merge(sets, read_sites_sample_GTSP)
 sets$Timepoint <- sortFactorTimepoints(sets$Timepoint)
@@ -196,7 +229,7 @@ standardizedDereplicatedSites <- getSitesInFeature(standardizedDereplicatedSites
                                                    feature.colnam="name2")
 
 #oncogenes
-oncogenes <- scan(file= file.path(codeDir, "allonco_no_pipes.csv"), what='charactor')
+oncogenes <- scan(file= file.path(codeDir, arguments$oncoGeneFile), what='charactor')
 oncogenes <- oncogenes[!grepl("geneName", oncogenes, ignore.case=TRUE)]
 
 refSeq_oncogene <- refSeq_genes[toupper(refSeq_genes$name2) %in% toupper(oncogenes)]
@@ -208,7 +241,7 @@ standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites
                                                    feature.colnam="name2")
 
 
-wantedgenes <- scan(file=file.path(codeDir, "genes_adverse_event.csv"), what='charactor')
+wantedgenes <- scan(file=file.path(codeDir, arguments$adverseGeneFile), what='charactor')
 wantedgenes <- wantedgenes[!grepl("geneName", wantedgenes, ignore.case=TRUE)]
 
 ## * in transcription units
@@ -329,43 +362,23 @@ dbConn <- dbConnect(MySQL(), group=db_group_sites)
 info <- dbGetInfo(dbConn)
 dbConn <- src_sql("mysql", dbConn, info = info)
 sites.multi <- merge( suppressWarnings(getMultihitLengths(sampleName_GTSP, dbConn)), sampleName_GTSP)
+
 if( nrow(sites.multi) > 0 ) {
-    sites.multi <- sites.multi %>%
-    group_by(multihitID) %>%
-    mutate(replicate=as.integer(as.factor(sampleName)))
+    sites.multi <- (sites.multi %>%
+                    group_by(multihitID) %>%
+                    mutate(replicate=as.integer(as.factor(sampleName))) )
     
-    dfr <- data.frame(ID=sites.multi$multihitID,
-                      fragLength=sites.multi$length,
-                      replicate=sites.multi$replicate)
-    
-    if(use.sonicLength){
-      estAbund.uniqueFragLen <- function(location, fragLen, replicate=NULL){
-        if(is.null(replicate)){replicate <- 1}  #Need for downstream workflow
-        dfr <- data.frame(location = location, fragLen = fragLen, 
-                          replicate = replicate)
-        dfr_dist <- distinct(dfr)
-        site_list <- split(dfr_dist, dfr_dist$location)
-        theta <- sapply(site_list, function(x){nrow(x)})
-        theta <- theta[unique(dfr$location)]
-        list(theta=theta)
-      }
-      estAbund <- estAbund.uniqueFragLen
-    }
-    
-    if(length(unique(dfr$replicate))==1){
-        estimatedAbundances <- estAbund(dfr$ID, dfr$fragLength)
-    }else{
-        estimatedAbundances <- estAbund(dfr$ID, dfr$fragLength, dfr$replicate)
-    }
-    
-    sites.multi <- subset(sites.multi, !duplicated(multihitID))
-    sites.multi$estAbund <- round(estimatedAbundances$theta[as.character(sites.multi$multihitID)])
+    sites.multi <- (sites.multi %>%
+                    group_by(sampleName, multihitID) %>%
+                    mutate( estAbund = length(unique(length)) ) )
     
     sites.multi <- merge(sites.multi, sets, by="GTSP")
-    sites.multi <- sites.multi %>% group_by(Patient, Timepoint, CellType) %>%
-    mutate(Rank=rank(-estAbund, ties.method="max"))
-
+    
+    sites.multi <- (sites.multi %>%
+                    group_by(Patient, Timepoint, CellType) %>%
+                    mutate(Rank=rank(-estAbund, ties.method="max")))
 }
+
 
 save.image(RDataFile)
 ##end setting variables for markdown report
