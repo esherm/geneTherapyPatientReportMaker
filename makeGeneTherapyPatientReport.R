@@ -8,7 +8,7 @@ options(stringsAsFactors = FALSE)
 #' Rscript ~/geneTherapyPatientReportMaker/makeGeneTherapyPatientReport.R --ref_genome mm9 mm.csv
 set_args <- function(...) {
     ## arguments from command line
-    library(argparse)
+    suppressMessages(library(argparse))
     parser <- ArgumentParser(description="Gene Therapy Patient Report for Single Patient")
     parser$add_argument("sample_gtsp", nargs='?', default='sampleName_GTSP.csv')
     parser$add_argument("-s", action='store_true', help="abundance by sonicLength package (Berry, C. 2012)")
@@ -39,8 +39,6 @@ set_args <- function(...) {
 arguments <- set_args()
 print(arguments)
 
-##args <- commandArgs(trailingOnly=TRUE)
-
 ## defaults:
 use.sonicLength <-  ! arguments$s
 db_group_sites <- arguments$sites_group
@@ -54,22 +52,23 @@ csvfile <- arguments$sample_gtsp
 if( !file.exists(csvfile) ) stop(csvfile, "not found")
 
 #### load up require packages + objects #### 
-library("RMySQL") #also loads DBI
-library("plyr")
-library("dplyr")
-library("reshape2")
-library("scales")
-library("ggplot2")
-library(devtools)
-library("stringr")
-library("reldist")
-library("hiAnnotator")
-library("sonicLength")
-library("intSiteRetriever")
-library("BiocParallel")
-library("PubMedWordcloud")
-library("markdown")
-library("knitr")
+libs <- c("RMySQL",
+          "plyr",
+          "dplyr",
+          "reshape2",
+          "scales",
+          "ggplot2",
+          "devtools",
+          "stringr",
+          "reldist",
+          "hiAnnotator",
+          "sonicLength",
+          "intSiteRetriever",
+          "BiocParallel",
+          "PubMedWordcloud",
+          "markdown",
+          "knitr")
+null <- suppressMessages(sapply(libs, library, character.only=TRUE))
 
 source(file.path(codeDir, "utilities.R"))
 source(file.path(codeDir, "specimen_management.R"))
