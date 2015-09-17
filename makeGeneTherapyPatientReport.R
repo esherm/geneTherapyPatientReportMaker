@@ -39,7 +39,7 @@ set_args <- function(...) {
 arguments <- set_args()
 print(arguments)
 
-args <- commandArgs(trailingOnly=TRUE)
+##args <- commandArgs(trailingOnly=TRUE)
 
 ## defaults:
 use.sonicLength <-  ! arguments$s
@@ -57,19 +57,19 @@ if( !file.exists(csvfile) ) stop(csvfile, "not found")
 library("RMySQL") #also loads DBI
 library("plyr")
 library("dplyr")
-library("stringr")
-library("markdown")
-library("knitr")
-library("PubMedWordcloud")
-library("hiAnnotator")
-library("ggplot2")
-library("reldist")
-library("sonicLength")
 library("reshape2")
 library("scales")
+library("ggplot2")
+library(devtools)
+library("stringr")
+library("reldist")
+library("hiAnnotator")
+library("sonicLength")
 library("intSiteRetriever")
 library("BiocParallel")
-library(devtools)
+library("PubMedWordcloud")
+library("markdown")
+library("knitr")
 
 source(file.path(codeDir, "utilities.R"))
 source(file.path(codeDir, "specimen_management.R"))
@@ -94,8 +94,15 @@ dbConn <- dbConnect(MySQL(), group=db_group_sites)
 info <- dbGetInfo(dbConn)
 dbConn <- src_sql("mysql", dbConn, info = info)
 
-
-stopifnot(all(setNameExists(sampleName_GTSP, dbConn)))
+if( !all(setNameExists(sampleName_GTSP, dbConn)) ) {
+    sampleNameIn <- paste(sprintf("'%s'", sampleName_GTSP$sampleName),
+                          collapse=",")
+    q <- sprintf("SELECT * FROM samples WHERE sampleName IN (%s)", sampleNameIn)
+    message("\nChecking database:\n",q,"\n")
+    write.table(tbl(dbConn, sql(q)), quote=FALSE, row.name=FALSE)
+    message()
+    stop("Was --ref_genome specified correctly or did query return all entries")
+}
 
 read_sites_sample_GTSP <- get_read_site_totals(sampleName_GTSP, dbConn)
 
