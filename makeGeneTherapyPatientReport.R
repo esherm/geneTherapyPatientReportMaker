@@ -106,6 +106,15 @@ if( !all(setNameExists(sampleName_GTSP, dbConn)) ) {
 read_sites_sample_GTSP <- get_read_site_totals(sampleName_GTSP, dbConn)
 
 sets <- get_metadata_for_GTSP(unique(sampleName_GTSP$GTSP), db_group_gtsp)
+
+## some clean up for typos, dates, spaces etc
+sets[sets$Timepoint=="NULL", "Timepoint"] <- "d0"
+sets[sets$Timepoint=="", "Timepoint"] <- "d0"
+sets$Timepoint <- gsub('_', '.', sets$Timepoint, fixed=TRUE)
+for(col in which(!sapply(sets, class) %in% c("numeric", "integer"))) {
+    sets[[col]] <-  gsub("\\s", '', sets[[col]])
+}
+
 # reports are for a single patient
 stopifnot(length(unique(sets$Patient)) == 1)
 patient <- sets$Patient[1]
@@ -119,8 +128,6 @@ RDataFile <- paste(trial, patient, format(Sys.Date(), format="%Y%m%d"), "RData",
 stopifnot(nrow(sets) == length(unique(sampleName_GTSP$GTSP)))
 
 ##end INPUTS
-sets[sets$Timepoint=="NULL", "Timepoint"] = "d0"
-sets[sets$Timepoint=="", "Timepoint"] = "d0"
 
 sets <- merge(sets, read_sites_sample_GTSP)
 sets$Timepoint <- sortFactorTimepoints(sets$Timepoint)
@@ -185,6 +192,17 @@ unique_sites_per_GTSP <- data.frame("GTSP" = names(unique_sites_per_GTSP),
                                     "UniqueSites" = unique_sites_per_GTSP)
 sets <- merge(sets, unique_sites_per_GTSP, by = "GTSP")
 
+vectors_recovered <- (standardizedReplicatedSites %>%
+                              as.data.frame %>%
+                              select(GTSP, replicate, posid, width) %>%
+                              distinct %>%
+                              group_by(GTSP) %>%
+                              count(GTSP))
+
+unique_vectors_per_GTSP <- data.frame("GTSP" = vectors_recovered$GTSP,
+                                      "Vectors" = vectors_recovered$n)                             
+
+sets <- merge(sets, unique_vectors_per_GTSP, by = "GTSP")
 #============CALCULATE POPULATION SIZE/DIVERSITY INFORMATION=================
 populationInfo <- getPopulationInfo(standardizedReplicatedSites,
                                     standardizedDereplicatedSites,
@@ -336,20 +354,20 @@ badActorData <- lapply(badActorData, function(x){
 timepoint <- levels(sets$Timepoint)
 
 cols <- c("Trial", "GTSP", "Patient", "Timepoint", "CellType", 
-          "TotalReads", "UniqueSites", "FragMethod", "VCN")
+          "TotalReads", "Vectors", "UniqueSites", "FragMethod", "VCN")
 summaryTable <- arrange(sets,Timepoint,CellType)
 summaryTable <- summaryTable[,cols]
 
 ##cols <- c("Patient", "Timepoint", "CellType", "UniqueSites",
 ##          "Replicates", "FragMethod", "VCN", "S.chao1", "Gini", "Shannon")
-cols <- c("Patient", "Timepoint", "CellType", "UniqueSites",
+cols <- c("Patient", "Timepoint", "CellType", "Vectors", "UniqueSites",
           "Replicates", "FragMethod", "VCN", "Gini", "Shannon")
 popSummaryTable <- merge(sets,  populationInfo, by.x="GTSP", by.y="group")
 popSummaryTable <- arrange(popSummaryTable,Timepoint,CellType)
 ##popSummaryTable <- popSummaryTable[,cols]
 
 cols <- c("Trial", "GTSP", "Replicates", "Patient", "Timepoint", "CellType", 
-          "TotalReads", "UniqueSites", "FragMethod", "VCN", "Gini", "Shannon")
+          "TotalReads", "Vectors", "UniqueSites", "FragMethod", "VCN", "Gini", "Shannon")
 summaryTable <- popSummaryTable[,cols]
 
 summaryTable$VCN <- ifelse(summaryTable$VCN == 0, NA, summaryTable$VCN)
