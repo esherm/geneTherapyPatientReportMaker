@@ -7,7 +7,7 @@ getAbundanceThreshold <- function(sites, numGenes){
 }
 
 filterLowAbund <- function(sites, abundCutoff){
-  sites$maskedRefGeneName <- ifelse(sites$estAbundProp > abundCutoff,
+  sites$maskedRefGeneName <- ifelse(sites$estAbundProp >= abundCutoff,
                                     sites$nearest_refSeq_gene,
                                     "LowAbund")
   sites
