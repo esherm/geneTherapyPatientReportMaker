@@ -1,4 +1,4 @@
-library(stringr)
+stopifnot( require(stringr) )
 
 sanitize <- function(string) {
   result <- gsub("&", "\\&", string, fixed = TRUE)
@@ -48,6 +48,7 @@ generate_word_bubble <- function(gene_abundance, max_num_words=500) {
 #' @param vector of dates to convert
 #' @return vector of days
 mdy_to_day <- function(dates) {
+  dates <- sub("\\.$", "", sub("([dmy][0-9]+\\.*[0-9]*).*", "\\1", dates))
   stopifnot(check_date_format(dates))
   mdy_letter <- get_mdy_letter(dates)
   mdy_value <- get_mdy_value(dates)
@@ -116,3 +117,44 @@ prepSiteList <- function(sites){
   sites$Timepoint <- sortFactorTimepoints(sites$Timepoint)
   sites
 }
+
+#Order barplot so "LowAbund" is always on the top of the plot
+order_barplot <- function(barplotAbunds){
+  barplotAbunds <- arrange(barplotAbunds, estAbundProp)
+  barplotAbunds$ref <- with(barplotAbunds, paste0(Timepoint, ":", CellType))
+  Abunds <- split(barplotAbunds, barplotAbunds$ref)
+  Abunds <- lapply(Abunds, function(x){
+    genes <- x$maskedRefGeneName
+    pos_lowAbund <- grep("LowAbund", genes)
+    if(length(pos_lowAbund) == 0){
+      x <- x
+    }else if(length(genes) == 1){
+      x <- x
+    }else if(pos_lowAbund == 1){
+      new_genes <- c(genes[2:length(genes)], "LowAbund")
+      gene_order <- as.integer(sapply(new_genes, function(y){
+        grep(y, x$maskedRefGeneName)
+        }))
+      x <- x[gene_order,]
+    }else if(pos_lowAbund == length(genes)){
+      x <- x
+    }else{
+      pos_before <- pos_lowAbund-1
+      pos_after <- pos_lowAbund+1
+      new_genes <- c(genes[1:pos_before], 
+                    genes[pos_after:length(genes)],
+                    "LowAbund")
+      gene_order <- as.integer(sapply(new_genes, function(y){
+        grep(y, x$maskedRefGeneName)
+      }))
+      x <- x[gene_order,]
+    }
+    x$ref <- NULL
+    x
+  })
+  barplotAbunds <- do.call(rbind, lapply(1:length(Abunds), function(i){Abunds[[i]]}))
+  barplotAbunds
+}
+
+
+
