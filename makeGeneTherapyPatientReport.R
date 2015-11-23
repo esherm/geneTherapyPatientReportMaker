@@ -15,6 +15,7 @@ set_args <- function(...) {
     parser$add_argument("-f", "--ref_genome", default="hg18", help="reference genome used for all samples")
     parser$add_argument("--sites_group", default="intsites_miseq.read", help="group to use for integration sites db from ~/.my.cnf")
     parser$add_argument("--gtsp_group", default="specimen_management", help="group to use for specimen management GTSP db from ~/.my.cnf")
+   parser$add_argument("--output", help='HTML and MD file names instead of Trial.Patient.Date name')
     arguments <- parser$parse_args(...)
     
     ## gene files
@@ -410,6 +411,10 @@ unlink(fig.path, force=TRUE, recursive=TRUE)
 mdfile <- paste(unique(trial), unique(patient),
                 format(Sys.Date(), format="%Y%m%d"), "md",
                 sep=".")
+
+if ( ! is.null(arguments$output)) {
+    mdfile <- paste(arguments$output, 'md', sep='.')
+}
 
 htmlfile <- gsub("\\.md$",".html",mdfile)
 options(knitr.table.format='html')
