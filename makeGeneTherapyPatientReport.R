@@ -193,17 +193,17 @@ unique_sites_per_GTSP <- data.frame("GTSP" = names(unique_sites_per_GTSP),
                                     "UniqueSites" = unique_sites_per_GTSP)
 sets <- merge(sets, unique_sites_per_GTSP, by = "GTSP")
 
-vectors_recovered <- (standardizedReplicatedSites %>%
+cells_recovered <- (standardizedReplicatedSites %>%
                               as.data.frame %>%
                               select(GTSP, replicate, posid, width) %>%
                               distinct %>%
                               group_by(GTSP) %>%
                               count(GTSP))
 
-unique_vectors_per_GTSP <- data.frame("GTSP" = vectors_recovered$GTSP,
-                                      "Vectors" = vectors_recovered$n)                             
+unique_cells_per_GTSP <- data.frame("GTSP" = cells_recovered$GTSP,
+                                      "InferredCells" = cells_recovered$n)                             
 
-sets <- merge(sets, unique_vectors_per_GTSP, by = "GTSP")
+sets <- merge(sets, unique_cells_per_GTSP, by = "GTSP")
 #============CALCULATE POPULATION SIZE/DIVERSITY INFORMATION=================
 populationInfo <- getPopulationInfo(standardizedReplicatedSites,
                                     standardizedDereplicatedSites,
@@ -355,20 +355,20 @@ badActorData <- lapply(badActorData, function(x){
 timepoint <- levels(sets$Timepoint)
 
 cols <- c("Trial", "GTSP", "Patient", "Timepoint", "CellType", 
-          "TotalReads", "Vectors", "UniqueSites", "FragMethod", "VCN")
+          "TotalReads", "InferredCells", "UniqueSites", "FragMethod", "VCN")
 summaryTable <- arrange(sets,Timepoint,CellType)
 summaryTable <- summaryTable[,cols]
 
 ##cols <- c("Patient", "Timepoint", "CellType", "UniqueSites",
 ##          "Replicates", "FragMethod", "VCN", "S.chao1", "Gini", "Shannon")
-cols <- c("Patient", "Timepoint", "CellType", "Vectors", "UniqueSites",
+cols <- c("Patient", "Timepoint", "CellType", "InferredCells", "UniqueSites",
           "Replicates", "FragMethod", "VCN", "Gini", "Shannon")
 popSummaryTable <- merge(sets,  populationInfo, by.x="GTSP", by.y="group")
 popSummaryTable <- arrange(popSummaryTable,Timepoint,CellType)
 ##popSummaryTable <- popSummaryTable[,cols]
 
 cols <- c("Trial", "GTSP", "Replicates", "Patient", "Timepoint", "CellType", 
-          "TotalReads", "Vectors", "UniqueSites", "FragMethod", "VCN", "Gini", "Shannon")
+          "TotalReads", "InferredCells", "UniqueSites", "FragMethod", "VCN", "Gini", "Shannon")
 summaryTable <- popSummaryTable[,cols]
 
 summaryTable$VCN <- ifelse(summaryTable$VCN == 0, NA, summaryTable$VCN)
