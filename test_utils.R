@@ -30,6 +30,18 @@ test_that("days processed", {
     expect_equal(mdy_to_day(dates), res)
 })
 
+test_that("suffix text is removed", {
+    dates <- c("d0.tdx2", "d0.tdx2.bag1", "d0.tdx2.bag2", "d0.untdx")
+    res <- c(0, 0, 0, 0)
+    expect_equal(mdy_to_day(dates), res)
+})
+
+test_that("suffix post is removed", {
+    dates <- c("m2post", "m2.5post", "y2post")
+    res <- c(ave_month*2, ave_month*2.5, ave_year*2)
+    expect_equal(mdy_to_day(dates), res)
+})
+
 test_that("dot is accepted", {
     dates <- c("d1.", "d10.", "d100.")
     res <- c(1, 10, 100)

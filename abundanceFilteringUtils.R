@@ -1,13 +1,13 @@
 getAbundanceThreshold <- function(sites, numGenes){
   orderedAbundances <- sites[order(-sites$estAbundProp)]
   #'unique' functionally removes anything that's duplicated, thus preserving order
-  abundCutoff <- orderedAbundances$nearest_refSeq_gene==unique(orderedAbundances$nearest_refSeq_gene)[numGenes]
+  abundCutoff <- orderedAbundances$nearest_refSeq_gene==tail(head(unique(orderedAbundances$nearest_refSeq_gene), numGenes),1)
   abundCutoff <- orderedAbundances[which(abundCutoff)[1]]$estAbundProp  
   abundCutoff
 }
 
 filterLowAbund <- function(sites, abundCutoff){
-  sites$maskedRefGeneName <- ifelse(sites$estAbundProp > abundCutoff,
+  sites$maskedRefGeneName <- ifelse(sites$estAbundProp >= abundCutoff,
                                     sites$nearest_refSeq_gene,
                                     "LowAbund")
   sites

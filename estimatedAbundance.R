@@ -1,5 +1,19 @@
-getEstimatedAbundance <- function(sites){
+getEstimatedAbundance <- function(sites, use.sonicLength=FALSE){
   #inputs at this point have been standardized, so it's ok to use posid as PK
+  if(use.sonicLength){
+    estAbund.uniqueFragLen <- function(location, fragLen, replicate=NULL){
+      if(is.null(replicate)){replicate <- 1}  #Need for downstream workflow
+      dfr <- data.frame(location = location, fragLen = fragLen, 
+                      replicate = replicate)
+      dfr_dist <- distinct(dfr)
+      site_list <- split(dfr_dist, dfr_dist$location)
+      theta <- sapply(site_list, function(x){nrow(x)})
+      theta <- theta[unique(dfr$location)]
+      list(theta=theta)
+    }
+    estAbund <- estAbund.uniqueFragLen
+  }
+  
   sites$posid = paste0(seqnames(sites), strand(sites), start(flank(sites, -1, start=T)))
   dfr <- data.frame("ID"=sites$posid,
                     "fragLength"=width(sites),
