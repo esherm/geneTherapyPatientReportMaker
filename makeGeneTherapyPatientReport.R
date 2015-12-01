@@ -24,7 +24,10 @@ set_args <- function(...) {
     if(grepl("^mm", arguments$ref_genome)) arguments$oncoGeneFile <- "allonco_no_pipes.mm.csv"
     stopifnot( arguments$ref_genome!="" )
     
-    arguments$adverseGeneFile <- "genes_adverse_event.csv"
+    ## note this file was obtained by
+    ## wget http://www.bushmanlab.org/assets/doc/humanLymph.tsv
+    ## it contains 38 gene names associated with Lymphoma
+    arguments$adverseGeneFile <- "humanLymph.tsv"
     
     ## code dir past to Rscript
     codeDir <- dirname(sub("--file=", "", grep("--file=", commandArgs(trailingOnly=FALSE), value=T)))
@@ -260,8 +263,11 @@ standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites
                                                    feature.colnam="name2")
 
 
-wantedgenes <- scan(file=file.path(codeDir, arguments$adverseGeneFile), what='charactor')
-wantedgenes <- wantedgenes[!grepl("geneName", wantedgenes, ignore.case=TRUE)]
+wantedgenes <- as.character(
+    read.csv(file.path(codeDir, arguments$adverseGeneFile),
+             sep="\t",
+             header=TRUE)$symbol)
+stopifnot(length(wantedgenes)==38)
 
 ## * in transcription units
 ## ~ within 50kb of a onco gene 
