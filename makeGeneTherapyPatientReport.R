@@ -267,6 +267,7 @@ wantedgenes <- as.character(
     read.csv(file.path(codeDir, arguments$adverseGeneFile),
              sep="\t",
              header=TRUE)$symbol)
+stopifnot(length(wantedgenes)>=1)
 
 ## * in transcription units
 ## ~ within 50kb of a onco gene 
