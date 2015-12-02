@@ -6,15 +6,24 @@ getAbundanceThreshold <- function(sites, numGenes){
   abundCutoff
 }
 
+# still returning relative abundance for report
+.getAbundanceAbsoluteThreshold <- function(sites, numGenes){
+  orderedAbundances <- sites[order(-sites$estAbund)]
+  #'unique' functionally removes anything that's duplicated, thus preserving order
+  abundCutoff <- orderedAbundances$nearest_refSeq_gene==tail(head(unique(orderedAbundances$nearest_refSeq_gene), numGenes),1)
+  abundCutoff <- orderedAbundances[which(abundCutoff)[1]]$estAbundProp  
+  abundCutoff
+}
+
 #' list of most abundant genes and abundance proportion cutoff
 #'
-#' @param sites df with columns: estAbundProp, nearest_refSeq_gene
+#' @param sites df with columns: estAbund, estAbundProp, nearest_refSeq_gene
 #' @param numGenes number of genes with highest abundance proportions
 #' @return list with 2 elements: abundanceCutoff( cut off value), 
 #' topGenes(vector of gene names)
 getMostAbundantGenes <- function(sites, numGenes) {
-    cutoff <- getAbundanceThreshold(sites, numGenes)
-    orderedAbundances <- sites[order(-sites$estAbundProp)]
+    cutoff <- .getAbundanceAbsoluteThreshold(sites, numGenes)
+    orderedAbundances <- sites[order(-sites$estAbund)]
     topGenes <- head(unique(orderedAbundances$nearest_refSeq_gene), numGenes)
     list(abundanceCutoff=cutoff, topGenes=topGenes)
 }
