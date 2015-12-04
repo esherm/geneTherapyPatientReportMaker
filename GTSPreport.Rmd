@@ -74,10 +74,10 @@ ggplot(data=barplotAbunds, aes(Timepoint, estAbundProp, fill=maskedRefGeneName))
 <P style="page-break-before: always">
 Here is another way to perceive top ranking integration sites by genes within each celltype.  Any sites with Estimated Absolute Abundance below `r abundCutoff.detailed` are binned as LowAbund.
 
-```{r sitetype_heatmap, fig.width=12, fig.height=11}
+```{r sitetype_heatmap, fig.width=12, fig.height=16}
 ggplot(data=detailedAbunds, aes(Timepoint, maskedRefGeneName, fill=estAbundProp)) + geom_tile() +
   scale_fill_continuous(name='Relative\nAbundance', labels=percent, low="#E5F5E0", high="#2B8CBE") + 
-  facet_grid(.~CellType, scales="free", space="free") + labs(y="SiteType", x="Timepoint") +
+  facet_wrap(~CellType, scales="free_x", ncol=6) + labs(y="SiteType", x="Timepoint") +
   theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1))
 ```
 
