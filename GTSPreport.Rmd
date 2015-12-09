@@ -62,7 +62,9 @@ Integration sites were recovered using ligation mediated PCR after random fragme
 In the barplots below, any sites with Estimated Absolute Abundance below `r abundCutoff.barplots` are binned as LowAbund.
 
 ```{r barPlots, fig.height=12, fig.width=12}
-siteColors = structure(gg_color_hue(length(unique(barplotAbunds$maskedRefGeneName))), names=unique(barplotAbunds$maskedRefGeneName))
+gene_names_barplot <- unique(barplotAbunds$maskedRefGeneName)
+colors_barplot <- colorRampPalette(brewer.pal(9, "Set2"))(length(gene_names_barplot))
+siteColors <- structure(colors_barplot, names=gene_names_barplot)
 siteColors["LowAbund"] <- "#E0E0E0"
 
 ggplot(data=barplotAbunds, aes(Timepoint, estAbundProp, fill=maskedRefGeneName)) +
