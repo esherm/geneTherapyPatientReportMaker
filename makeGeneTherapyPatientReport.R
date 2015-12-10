@@ -71,6 +71,7 @@ libs <- c("RMySQL",
           "BiocParallel",
           "PubMedWordcloud",
           "markdown",
+          "RColorBrewer",
           "knitr")
 null <- suppressMessages(sapply(libs, library, character.only=TRUE))
 
@@ -306,7 +307,7 @@ standardizedDereplicatedSites$nearest_refSeq_gene <- paste0(
 
 #===================GENERATE EXPANDED CLONE DATAFRAMES======================
 #barplots
-cutoff_genes_barplot <- getMostAbundantGenes(standardizedDereplicatedSites, 15)
+cutoff_genes_barplot <- getMostAbundantGenes(standardizedDereplicatedSites, 20)
 abundCutoff.barplots <- cutoff_genes_barplot[[1]]
 frequent_genes_barplot <- cutoff_genes_barplot[[2]]
 
