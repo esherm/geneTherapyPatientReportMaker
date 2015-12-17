@@ -72,6 +72,7 @@ libs <- c("RMySQL",
           "PubMedWordcloud",
           "markdown",
           "RColorBrewer",
+          "magrittr",
           "knitr")
 null <- suppressMessages(sapply(libs, library, character.only=TRUE))
 
@@ -106,6 +107,8 @@ if( !all(setNameExists(sampleName_GTSP, dbConn)) ) {
     write.table(tbl(dbConn, sql(q)), quote=FALSE, row.name=FALSE)
     message()
     stop("Was --ref_genome specified correctly or did query return all entries")
+} else {
+    message("All samples are in DB.")
 }
 
 read_sites_sample_GTSP <- get_read_site_totals(sampleName_GTSP, dbConn)
