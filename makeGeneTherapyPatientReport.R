@@ -252,7 +252,7 @@ standardizedDereplicatedSites <- getSitesInFeature(standardizedDereplicatedSites
                                                    feature.colnam="name2")
 
 #oncogenes
-oncogenes <- scan(file= file.path(codeDir, arguments$oncoGeneFile), what='charactor')
+oncogenes <- scan(file= file.path(codeDir, arguments$oncoGeneFile), what='character')
 oncogenes <- oncogenes[!grepl("geneName", oncogenes, ignore.case=TRUE)]
 
 refSeq_oncogene <- refSeq_genes[toupper(refSeq_genes$name2) %in% toupper(oncogenes)]
