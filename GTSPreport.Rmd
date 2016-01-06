@@ -68,8 +68,20 @@ colors_barplot <- colorRampPalette(brewer.pal(12, "Paired"))(length(gene_names_b
 siteColors <- structure(colors_barplot, names=gene_names_barplot)
 siteColors["LowAbund"] <- "#E0E0E0"
 
+n_timpoints_for_cell_type <- barplotAbunds %>%
+    distinct(CellType, Timepoint) %>%
+    group_by(CellType) %>%
+    summarize(TimePointCount = n())
+
+n_timpoints_for_cell_type <- mutate(
+    n_timpoints_for_cell_type, 
+    FractionTimePointCount = TimePointCount / max(TimePointCount)
+)
+
+barplotAbunds <- left_join(barplotAbunds, n_timpoints_for_cell_type, by='CellType') 
+
 ggplot(data=barplotAbunds, aes(Timepoint, estAbundProp, fill=maskedRefGeneName)) +
-  geom_bar(stat="identity") + facet_wrap(~CellType, scales="free") + scale_fill_manual(values=siteColors) +
+  geom_bar(aes(width=0.9*FractionTimePointCount), stat="identity") + facet_wrap(~CellType, scales="free") + scale_fill_manual(values=siteColors) +
   labs(y="Relative Sonic Abundance", x="Timepoint", fill="GeneNames") +
   scale_y_continuous(labels=percent)  +
   theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1))
