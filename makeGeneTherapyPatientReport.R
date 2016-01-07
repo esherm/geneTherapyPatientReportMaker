@@ -15,7 +15,8 @@ set_args <- function(...) {
     parser$add_argument("-r", "--ref_genome", default="hg18", help="reference genome used for all samples")
     parser$add_argument("--sites_group", default="intsites_miseq.read", help="group to use for integration sites db from ~/.my.cnf")
     parser$add_argument("--gtsp_group", default="specimen_management", help="group to use for specimen management GTSP db from ~/.my.cnf")
-   parser$add_argument("--output", help='HTML and MD file names instead of Trial.Patient.Date name')
+    parser$add_argument("-o", "--output", help='HTML and MD file names instead of Trial.Patient.Date name')
+
     arguments <- parser$parse_args(...)
     
     ## gene files
@@ -39,7 +40,6 @@ set_args <- function(...) {
     
     return(arguments)
 }
-##set_args()
 arguments <- set_args()
 print(arguments)
 
@@ -56,32 +56,18 @@ csvfile <- arguments$sample_gtsp
 if( !file.exists(csvfile) ) stop(csvfile, "not found")
 
 #### load up require packages + objects #### 
-libs <- c("RMySQL",
-          "plyr",
-          "dplyr",
-          "stringr",
-          "reshape2",
-          "scales",
-          "ggplot2",
-          "devtools",
-          "reldist",
-          "hiAnnotator",
-          "sonicLength",
-          "intSiteRetriever",
-          "BiocParallel",
-          "PubMedWordcloud",
-          "markdown",
-          "RColorBrewer",
-          "magrittr",
-          "knitr")
+libs <- c("RMySQL", "plyr", "dplyr", "stringr", "reshape2",
+          "scales", "ggplot2", "devtools", "reldist",
+          "hiAnnotator", "sonicLength", "intSiteRetriever",
+          "BiocParallel", "PubMedWordcloud", "markdown",
+          "RColorBrewer", "magrittr", "knitr")
 null <- suppressMessages(sapply(libs, library, character.only=TRUE))
 
-source(file.path(codeDir, "utilities.R"))
-source(file.path(codeDir, "specimen_management.R"))
-source(file.path(codeDir, "estimatedAbundance.R"))
-source(file.path(codeDir, "read_site_totals.R"))
-source(file.path(codeDir, "populationInfo.R"))
-source(file.path(codeDir, "abundanceFilteringUtils.R"))
+R_source_files <- c("utilities.R", "specimen_management.R", 
+    "estimatedAbundance.R", "read_site_totals.R",
+    "populationInfo.R", "abundanceFilteringUtils.R")
+
+null <- sapply(R_source_files, function(x) source(file.path(codeDir, x)))
 
 url <- "https://raw.githubusercontent.com/BushmanLab/intSiteCaller/master/"
 source_url(paste0(url, "hiReadsProcessor.R"))
@@ -366,21 +352,11 @@ badActorData <- lapply(badActorData, function(x){
 #==================SET VARIABLES FOR MARKDOWN REPORT=====================
 timepoint <- levels(sets$Timepoint)
 
-cols <- c("Trial", "GTSP", "Patient", "Timepoint", "CellType", 
-          "TotalReads", "InferredCells", "UniqueSites", "FragMethod", "VCN")
-summaryTable <- arrange(sets,Timepoint,CellType)
-summaryTable <- summaryTable[,cols]
-
-##cols <- c("Patient", "Timepoint", "CellType", "UniqueSites",
-##          "Replicates", "FragMethod", "VCN", "S.chao1", "Gini", "Shannon")
-cols <- c("Patient", "Timepoint", "CellType", "InferredCells", "UniqueSites",
-          "Replicates", "FragMethod", "VCN", "Gini", "Shannon")
 popSummaryTable <- merge(sets,  populationInfo, by.x="GTSP", by.y="group")
 popSummaryTable <- arrange(popSummaryTable,Timepoint,CellType)
-##popSummaryTable <- popSummaryTable[,cols]
 
 cols <- c("Trial", "GTSP", "Replicates", "Patient", "Timepoint", "CellType", 
-          "TotalReads", "InferredCells", "UniqueSites", "FragMethod", "VCN", "Gini", "Shannon")
+          "TotalReads", "InferredCells", "UniqueSites", "FragMethod", "VCN", "S.chao1", "Gini", "Shannon")
 summaryTable <- popSummaryTable[,cols]
 
 summaryTable$VCN <- ifelse(summaryTable$VCN == 0, NA, summaryTable$VCN)
