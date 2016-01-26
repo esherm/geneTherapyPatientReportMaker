@@ -34,9 +34,9 @@ GTSP0308-3,GTSP0308,pFR03
 #### Code example
 - 1. `check_patient_gtsp.R`: get available datasets, generate a csv file for a patient 
 ```
- Rscript path/to/check_patient_GTSP.R                    #get all processed samples
- Rscript path/to/check_patient_GTSP.R pFR03              #get data sets for patient pFR03 and output to csv format
- Rscript path/to/check_patient_GTSP.R pFR03 > pFR03.csv  #get data sets for patient pFR03 and output to tmp.csv
+ Rscript path/to/check_patient_gtsp.R                    #get all processed samples
+ Rscript path/to/check_patient_gtsp.R pFR03              #get data sets for patient pFR03 and output to csv format
+ Rscript path/to/check_patient_gtsp.R pFR03 > pFR03.csv  #get data sets for patient pFR03 and output to tmp.csv
 ```
 
 - 2. `makeGeneTherapyPatientReport.R`: generate report for a patient from the csv file 
