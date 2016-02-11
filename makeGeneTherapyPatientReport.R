@@ -15,6 +15,7 @@ set_args <- function(...) {
     parser$add_argument("-r", "--ref_genome", default="hg18", help="reference genome used for all samples")
     parser$add_argument("--sites_group", default="intsites_miseq.read", help="group to use for integration sites db from ~/.my.cnf")
     parser$add_argument("--gtsp_group", default="specimen_management", help="group to use for specimen management GTSP db from ~/.my.cnf")
+    parser$add_argument("--ref_seq", help="read Ref Seq genes from file")
     parser$add_argument("-o", "--output", help='HTML and MD file names instead of Trial.Patient.Date name')
 
     arguments <- parser$parse_args(...)
@@ -49,6 +50,7 @@ db_group_sites <- arguments$sites_group
 db_group_gtsp <- arguments$gtsp_group
 ref_genome <- arguments$ref_genome
 codeDir <- arguments$codeDir
+ref_seq_filename <- arguments$ref_seq
 
 #### INPUTS: csv file/table GTSP to sampleName ####
 csvfile <- arguments$sample_gtsp
@@ -64,7 +66,7 @@ libs <- c("RMySQL", "plyr", "dplyr", "stringr", "reshape2",
 null <- suppressMessages(sapply(libs, library, character.only=TRUE))
 
 R_source_files <- c("utilities.R", "specimen_management.R", 
-    "estimatedAbundance.R", "read_site_totals.R",
+    "estimatedAbundance.R", "read_site_totals.R", "ref_seq.R",
     "populationInfo.R", "abundanceFilteringUtils.R")
 
 null <- sapply(R_source_files, function(x) source(file.path(codeDir, x)))
@@ -218,10 +220,8 @@ timepointPopulationInfo$UniqueSites <- sapply(split(standardizedDereplicatedSite
 #=======================ANNOTATE DEREPLICATED SITES==========================
 #standard refSeq genes
 message("Annotating unique hit sites")
-refSeq_genes <- makeGRanges(
-  getUCSCtable("refGene", "RefSeq Genes", freeze=freeze),
-  freeze=freeze
-)
+refSeq_genes <- read_ref_seq(ref_seq_filename)
+
 save.image(RDataFile)
 
 standardizedDereplicatedSites <- getNearestFeature(standardizedDereplicatedSites,
