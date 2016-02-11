@@ -25,7 +25,7 @@ jackIID <- function(specie,jrep=NULL,nrep=10L){
 calculateChao <- function(replicatedSites, biased=TRUE){
     if ( ! biased) { #regular Chao
         cluster.tab <- table(replicatedSites$posid)
-        return(estimateR(cluster.tab)["S.chao1"])
+        return(round(estimateR(cluster.tab)["S.chao1"]))
     }
     round(jackIID(replicatedSites$posid)["S.chao1"])
 }
