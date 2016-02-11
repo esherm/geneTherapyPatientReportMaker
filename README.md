@@ -69,6 +69,12 @@ with default "specimen_management":
 Rscript path/to/makeGeneTherapyPatientReport.R  ~/Frances/run20150505  --gtsp_group gtsp_group_in_my_cnf
 ```
 
+Once ref seq genes are downloaded from UCSC; data(genes and locations) are stored
+in `refSeq.rds` and this file can be used in future runs(to avoid downloading again):
+```
+Rscript path/to/makeGeneTherapyPatientReport.R  ~/Frances/run20150505  --ref_seq refSeq.rds
+```
+
 
 
 #### Database config file location
