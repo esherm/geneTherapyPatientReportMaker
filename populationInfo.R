@@ -53,10 +53,18 @@ getPopulationInfo <- function(replicated, dereplicated, splitBy){
     data.frame("group"=name,
                "S.chao1"=calculateChao(replicatedSites),
                "Gini"=calculateGini(dereplicatedSites),
-               "Shannon"=calculateShannon(dereplicatedSites))
+               "Shannon"=calculateShannon(dereplicatedSites),
+               "UC50"=calculateUC50(dereplicatedSites$estAbund))
   })
 
   populationInfo <- do.call(rbind, populationInfo)
   rownames(populationInfo) <- NULL
   populationInfo
+}
+
+calculateUC50 <- function(abund){
+  stopifnot(is.vector(abund) & is.numeric(abund))
+  abund <- abund[order(abund)]
+  accum <- sapply(1:length(abund), function(i){sum(abund[1:i])})
+  length(accum[accum >= sum(abund)/2])
 }
