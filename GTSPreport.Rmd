@@ -35,13 +35,16 @@ draft `r sanitize(freeze)`.
 The samples studied in this report, the numbers of sequence reads, recovered
 integration vectors, and unique integration sites available for this subject
 are shown below. We quantify population clone diversity using [Gini
-coefficients](https://en.wikipedia.org/wiki/Gini_coefficient) and [Shannon
-index](https://en.wikipedia.org/wiki/Diversity_index#Shannon_index). The Gini
+coefficients](https://en.wikipedia.org/wiki/Gini_coefficient), [Shannon
+index](https://en.wikipedia.org/wiki/Diversity_index#Shannon_index), and UC50. The Gini
 coefficient provides a measure of inequality in clonal abundance in each
 sample. The coefficient equals zero when all sites are equally abundant
 (polyclonal) and increases as fewer sites account for more of the total
 (oligoclonal). Shannon index is another widely used measure of diversity and it
-accounts for both abundance and evenness of the integration events.
+accounts for both abundance and evenness of the integration events. Alternatively, the
+UC50 is the number of unique clones which make up the top 50% of the sample's abundance. 
+For polyclonal samples, one may expect a low Gini coefficient, high Shannon Index, and 
+high UC50 (proportional to the total number of unique sites identified in the sample).
 
 Under most circumstances only a subset of sites will be sampled. We thus
 include an estimate of sample size based on frequency of isolation information
