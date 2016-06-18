@@ -295,18 +295,45 @@ standardizedDereplicatedSites$nearest_refSeq_gene <- paste0(
     standardizedDereplicatedSites$geneMark)
 
 #===================GENERATE EXPANDED CLONE DATAFRAMES======================
-#barplots
-cutoff_genes_barplot <- getMostAbundantGenes(standardizedDereplicatedSites, 20)
-abundCutoff.barplots <- cutoff_genes_barplot[[1]]
-frequent_genes_barplot <- cutoff_genes_barplot[[2]]
+#Total abundance barplot
+cutoff_genes_total_barplot <- getMostAbundantGenes(
+  standardizedDereplicatedSites, 
+  numGenes = 20
+)
 
-barplotAbunds <- getAbundanceSums(maskGenes(
-    standardizedDereplicatedSites,frequent_genes_barplot), c("CellType", "Timepoint"))
+abundCutoff.total.barplots <- cutoff_genes_total_barplot$abundanceCutoff
+frequent_genes_total_barplot <- cutoff_genes_total_barplot$topGenes
 
-barplotAbunds <- order_barplot(barplotAbunds)
-CellType_order <- unique(barplotAbunds$CellType)
-barplotAbunds$CellType <- factor(barplotAbunds$CellType, 
-                                 levels=CellType_order)
+barplotTotalAbunds <- getAbundanceSums(
+  maskGenes(standardizedDereplicatedSites, frequent_genes_total_barplot),
+  c("CellType", "Timepoint")
+)
+CellType_order <- unique(standardizedDereplicatedSites$CellType)
+barplotTotalAbunds$CellType <- factor(barplotTotalAbunds$CellType, levels=CellType_order)
+
+#Sample barplots
+standardizedDereplicatedSamples <- split(
+  standardizedDereplicatedSites, 
+  standardizedDereplicatedSites$CellType
+)
+
+cutoff_genes_sample_barplot <- lapply(
+  standardizedDereplicatedSamples,
+  getMostAbundantGenes, 
+  numGenes = 10
+)
+
+abundCutoff.sample.barplots <- sapply(cutoff_genes_sample_barplot, "[[", 1)
+frequent_genes_sample_barplot <- lapply(cutoff_genes_sample_barplot, "[[", 2)
+
+barplotSampleAbunds <- lapply(1:length(standardizedDereplicatedSamples), function(i){
+  sites <- standardizedDereplicatedSamples[[i]]
+  genes <- frequent_genes_sample_barplot[[i]]
+  getAbundanceSums(maskGenes(sites, genes), c("CellType", "Timepoint"))
+})
+
+barplotSampleAbunds <- bind_rows(lapply(barplotSampleAbunds, order_barplot))
+barplotSampleAbunds$CellType <- factor(barplotSampleAbunds$CellType, levels=CellType_order)
 
 #detailed abundance plot
 cutoff_genes <- getMostAbundantGenes(standardizedDereplicatedSites, 50)

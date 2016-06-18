@@ -33,7 +33,9 @@ getAbundanceSums <- function(sites, splitBy){
   splitSites <- split(sites, apply(as.data.frame(splitBy), 1, paste, collapse=""))
   
   do.call(rbind, lapply(splitSites, function(sites){
-    res <- aggregate(estAbundProp~maskedRefGeneName, mcols(sites), sum)
+    res <- aggregate(estAbundProp ~ maskedRefGeneName, mcols(sites), sum)
+    est <- aggregate(estAbund ~ maskedRefGeneName, mcols(sites), sum)
+    res <- join(res, est, by = "maskedRefGeneName")
     res$Timepoint <- sites[1]$Timepoint
     res$CellType <- sites[1]$CellType
     
