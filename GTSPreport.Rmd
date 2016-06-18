@@ -124,7 +124,7 @@ n_timepoints_for_cell_type <- mutate(
 barplotSampleAbunds <- left_join(barplotSampleAbunds, n_timepoints_for_cell_type, by='CellType') 
 barplotSampleAbunds$CellType <- paste0(
   as.character(barplotSampleAbunds$CellType),
-  " (cutoff = ",
+  "\n(cutoff = ",
   abundCutoff.sample.barplots[barplotSampleAbunds$CellType],
   " cells)")
 barplotSampleAbunds <- split(barplotSampleAbunds, barplotSampleAbunds$CellType)
