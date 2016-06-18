@@ -4,6 +4,7 @@
 
 ```{r setup,echo=FALSE}
 library(knitr)
+library(RColorBrewer)
 library(grid)
 library(gridExtra)
 opts_chunk$set(
@@ -88,9 +89,9 @@ The relative abundance of cell clones is summarized in the attached stacked bar 
  
 Integration sites were recovered using ligation mediated PCR after random fragmentation of genomic DNA, which reduces recovery biases compared with restriction enzyme cleavage. Relative abundance was not measured from read counts, which are known to be inaccurate, but from marks introduced into DNA specimens prior to PCR amplification using the SonicLength method [PMID:22238265](http://www.ncbi.nlm.nih.gov/pubmed/22238265).
 
-In the barplots below, any sites with Estimated Absolute Abundance below `r abundCutoff.barplots` are binned as LowAbund.
+In the barplots below, any sites with Estimated Absolute Abundance below `r abundCutoff.total.barplots` are binned as LowAbund.
 
-```{r barPlots, fig.height=12, fig.width=12}
+```{r totalBarPlots, fig.height=12, fig.width=12}
 gene_names_barplot <- unique(c(barplotTotalAbunds$maskedRefGeneName, barplotSampleAbunds$maskedRefGeneName))
 colors_barplot <- colorRampPalette(brewer.pal(12, "Paired"))(length(gene_names_barplot))
 siteColors <- structure(colors_barplot, names=gene_names_barplot)
@@ -109,19 +110,21 @@ n_timepoints_for_cell_type <- mutate(
 barplotTotalAbunds <- left_join(barplotTotalAbunds, n_timepoints_for_cell_type, by='CellType') 
 
 ggplot(data=barplotTotalAbunds, aes(Timepoint, estAbund, fill=maskedRefGeneName)) +
-  geom_bar(aes(width=0.9*FractionTimePointCount), stat="identity") + 
-  facet_grid(. ~ CellType, scales="fixed", switch="y") +
+  geom_bar(aes(), stat="identity") + 
+  facet_grid(CellType ~ ., scales="fixed") +
   scale_fill_manual(values=siteColors) +
   labs(y="Sonic Abundance", x="Timepoint", fill="GeneNames") +
-  scale_y_continuous()  +
+  scale_y_continuous(labels = scales::comma)  +
   theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1),
-      panel.background = element_rect(fill = "white"),
-      panel.border = element_rect(colour = "grey", fill=NA, size=0.5)
-)
+    panel.background = element_rect(fill = "white"),
+    panel.border = element_rect(colour = "grey", fill=NA, size=0.5)
+  )
+```
 
+<P style="page-break-before: always">
+Below are similar barplots to the previous figure, yet show the relative abundance of the top 10 clones in each sample.  Cutoff values for binning clones as LowAbund are calulated based on the Estimated Absolute Abundance from each sample and are noted next to the cell types.
 
-####!!!!!!This is where you stopped!!!
-
+```{r sampleBarPlots, fig.height=12, fig.width=12}
 n_timepoints_for_cell_type <- barplotSampleAbunds %>%
     distinct(CellType, Timepoint) %>%
     group_by(CellType) %>%
@@ -136,7 +139,7 @@ barplotSampleAbunds <- left_join(barplotSampleAbunds, n_timepoints_for_cell_type
 barplotSampleAbunds$CellType <- paste0(
   as.character(barplotSampleAbunds$CellType),
   " (cutoff = ",
-  abundCutoff.barplots[barplotSampleAbunds$CellType],
+  abundCutoff.sample.barplots[barplotSampleAbunds$CellType],
   " cells)")
 barplotSampleAbunds <- split(barplotSampleAbunds, barplotSampleAbunds$CellType)
 

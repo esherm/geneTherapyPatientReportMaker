@@ -298,7 +298,7 @@ standardizedDereplicatedSites$nearest_refSeq_gene <- paste0(
 #Total abundance barplot
 cutoff_genes_total_barplot <- getMostAbundantGenes(
   standardizedDereplicatedSites, 
-  numGenes = 20
+  numGenes = 30
 )
 
 abundCutoff.total.barplots <- cutoff_genes_total_barplot$abundanceCutoff
@@ -308,6 +308,7 @@ barplotTotalAbunds <- getAbundanceSums(
   maskGenes(standardizedDereplicatedSites, frequent_genes_total_barplot),
   c("CellType", "Timepoint")
 )
+barplotTotalAbunds <- order_barplot(barplotTotalAbunds)
 CellType_order <- unique(standardizedDereplicatedSites$CellType)
 barplotTotalAbunds$CellType <- factor(barplotTotalAbunds$CellType, levels=CellType_order)
 
@@ -333,6 +334,7 @@ barplotSampleAbunds <- lapply(1:length(standardizedDereplicatedSamples), functio
 })
 
 barplotSampleAbunds <- bind_rows(lapply(barplotSampleAbunds, order_barplot))
+barplotSampleAbunds <- order_barplot(barplotSampleAbunds)
 barplotSampleAbunds$CellType <- factor(barplotSampleAbunds$CellType, levels=CellType_order)
 
 #detailed abundance plot
