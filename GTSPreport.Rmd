@@ -3,10 +3,8 @@
 `r format(Sys.Date(), "%b %d %Y")`
 
 ```{r setup,echo=FALSE}
-library(knitr)
-library(RColorBrewer)
-library(grid)
-library(gridExtra)
+libs <- c("knitr", "RColorBrewer", "grid", "gridExtra")
+null <- suppressMessages(sapply(libs, library, character.only=TRUE))
 opts_chunk$set(
   fig.path=paste0(fig.path, "/"), 
   fig.align='left', 
@@ -97,18 +95,6 @@ colors_barplot <- colorRampPalette(brewer.pal(12, "Paired"))(length(gene_names_b
 siteColors <- structure(colors_barplot, names=gene_names_barplot)
 siteColors["LowAbund"] <- "#E0E0E0"
 
-n_timepoints_for_cell_type <- barplotTotalAbunds %>%
-    distinct(CellType, Timepoint) %>%
-    group_by(CellType) %>%
-    summarize(TimePointCount = n())
-
-n_timepoints_for_cell_type <- mutate(
-    n_timpoints_for_cell_type, 
-    FractionTimePointCount = TimePointCount / max(TimePointCount)
-)
-
-barplotTotalAbunds <- left_join(barplotTotalAbunds, n_timepoints_for_cell_type, by='CellType') 
-
 ggplot(data=barplotTotalAbunds, aes(Timepoint, estAbund, fill=maskedRefGeneName)) +
   geom_bar(aes(), stat="identity") + 
   facet_grid(CellType ~ ., scales="fixed") +
@@ -131,7 +117,7 @@ n_timepoints_for_cell_type <- barplotSampleAbunds %>%
     summarize(TimePointCount = n())
 
 n_timepoints_for_cell_type <- mutate(
-    n_timpoints_for_cell_type, 
+    n_timepoints_for_cell_type, 
     FractionTimePointCount = TimePointCount / max(TimePointCount)
 )
 
