@@ -92,12 +92,12 @@ Integration sites were recovered using ligation mediated PCR after random fragme
 In the barplots below, any sites with Estimated Absolute Abundance below `r abundCutoff.total.barplots` are binned as LowAbund.
 
 ```{r totalBarPlots, fig.height=12, fig.width=12}
-gene_names_barplot <- unique(c(barplotTotalAbunds$maskedRefGeneName, barplotSampleAbunds$maskedRefGeneName))
+gene_names_barplot <- frequent_genes_barplot
 colors_barplot <- colorRampPalette(brewer.pal(12, "Paired"))(length(gene_names_barplot))
 siteColors <- structure(colors_barplot, names=gene_names_barplot)
 siteColors["LowAbund"] <- "#E0E0E0"
 
-n_timepoints_for_cell_type <- barplotTotalAbunds %>%
+n_timepoints_for_cell_type <- barplotAbunds %>%
     distinct(CellType, Timepoint) %>%
     group_by(CellType) %>%
     summarize(TimePointCount = n())
@@ -107,9 +107,9 @@ n_timepoints_for_cell_type <- mutate(
     FractionTimePointCount = TimePointCount / max(TimePointCount)
 )
 
-barplotTotalAbunds <- left_join(barplotTotalAbunds, n_timepoints_for_cell_type, by='CellType') 
+barplotAbunds <- left_join(barplotAbunds, n_timepoints_for_cell_type, by='CellType') 
 
-ggplot(data=barplotTotalAbunds, aes(Timepoint, estAbund, fill=maskedRefGeneName)) +
+ggplot(data=barplotAbunds, aes(Timepoint, estAbund, fill=maskedRefGeneName)) +
   geom_bar(aes(), stat="identity") + 
   facet_grid(CellType ~ ., scales="fixed") +
   scale_fill_manual(values=siteColors) +
@@ -125,28 +125,18 @@ ggplot(data=barplotTotalAbunds, aes(Timepoint, estAbund, fill=maskedRefGeneName)
 Below are similar barplots to the previous figure, yet show the relative abundance of the top 10 clones in each sample.  Cutoff values for binning clones as LowAbund are calulated based on the Estimated Absolute Abundance from each sample and are noted next to the cell types.
 
 ```{r sampleBarPlots, fig.height=12, fig.width=12}
-n_timepoints_for_cell_type <- barplotSampleAbunds %>%
-    distinct(CellType, Timepoint) %>%
-    group_by(CellType) %>%
-    summarize(TimePointCount = n())
-
-n_timepoints_for_cell_type <- mutate(
-    n_timpoints_for_cell_type, 
-    FractionTimePointCount = TimePointCount / max(TimePointCount)
-)
-
-barplotSampleAbunds <- left_join(barplotSampleAbunds, n_timepoints_for_cell_type, by='CellType') 
-barplotSampleAbunds$CellType <- paste0(
-  as.character(barplotSampleAbunds$CellType),
-  " (cutoff = ",
-  abundCutoff.sample.barplots[barplotSampleAbunds$CellType],
+barplotAbundsBySample <- left_join(barplotAbundsBySample, n_timepoints_for_cell_type, by='CellType')
+barplotAbundsBySample$CellType <- paste0(
+  as.character(barplotAbundsBySample$CellType),
+  "\n(cutoff = ",
+  abundCutoff.barplots[barplotAbundsBySample$CellType],
   " cells)")
-barplotSampleAbunds <- split(barplotSampleAbunds, barplotSampleAbunds$CellType)
+barplotAbundsBySample <- split(barplotAbundsBySample, barplotAbundsBySample$CellType)
 
 #Relative abundance by CellTypes
 do.call(
   grid.arrange,
-  lapply(barplotSampleAbunds, function(data){
+  lapply(barplotAbundsBySample, function(data){
     plot <- ggplot(data=data, aes(Timepoint, estAbundProp, fill=maskedRefGeneName)) +
       geom_bar(aes(width=0.9*FractionTimePointCount), stat="identity") + 
       facet_wrap(~CellType, scales="free") +
