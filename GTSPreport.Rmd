@@ -3,10 +3,8 @@
 `r format(Sys.Date(), "%b %d %Y")`
 
 ```{r setup,echo=FALSE}
-library(knitr)
-library(RColorBrewer)
-library(grid)
-library(gridExtra)
+libs <- c("knitr", "RColorBrewer", "grid", "gridExtra")
+null <- suppressMessages(sapply(libs, library, character.only=TRUE))
 opts_chunk$set(
   fig.path=paste0(fig.path, "/"), 
   fig.align='left', 
@@ -89,7 +87,7 @@ The relative abundance of cell clones is summarized in the attached stacked bar 
  
 Integration sites were recovered using ligation mediated PCR after random fragmentation of genomic DNA, which reduces recovery biases compared with restriction enzyme cleavage. Relative abundance was not measured from read counts, which are known to be inaccurate, but from marks introduced into DNA specimens prior to PCR amplification using the SonicLength method [PMID:22238265](http://www.ncbi.nlm.nih.gov/pubmed/22238265).
 
-In the barplots below, any sites with Estimated Absolute Abundance below `r abundCutoff.total.barplots` are binned as LowAbund.
+In the barplots below, the top 10 sites from each cell type have been annotated in all samples, while the remaining sites have been binned as low abundance (LowAbund).
 
 ```{r totalBarPlots, fig.height=12, fig.width=12}
 gene_names_barplot <- frequent_genes_barplot
