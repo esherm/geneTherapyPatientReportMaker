@@ -101,7 +101,7 @@ n_timepoints_for_cell_type <- barplotAbunds %>%
     summarize(TimePointCount = n())
 
 n_timepoints_for_cell_type <- mutate(
-    n_timpoints_for_cell_type, 
+    n_timepoints_for_cell_type, 
     FractionTimePointCount = TimePointCount / max(TimePointCount)
 )
 
