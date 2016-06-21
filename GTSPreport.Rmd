@@ -87,7 +87,7 @@ The relative abundance of cell clones is summarized in the attached stacked bar 
  
 Integration sites were recovered using ligation mediated PCR after random fragmentation of genomic DNA, which reduces recovery biases compared with restriction enzyme cleavage. Relative abundance was not measured from read counts, which are known to be inaccurate, but from marks introduced into DNA specimens prior to PCR amplification using the SonicLength method [PMID:22238265](http://www.ncbi.nlm.nih.gov/pubmed/22238265).
 
-In the barplots below, the top 10 sites from each cell type have been annotated in all samples, while the remaining sites have been binned as low abundance (LowAbund).
+In the barplots below, the x-axis indicates each sample type and time point, the y-axis is scaled by the number of cells sampled (SonicBreaks), where the range is taken from the most abundant sample.  The top 10 sites from each cell type have been named for the nearest gene and pooled over all cell types. The remaining sites are binned as low abundance (LowAbund; grey).
 
 ```{r totalBarPlots, fig.height=12, fig.width=12}
 gene_names_barplot <- frequent_genes_barplot
@@ -120,7 +120,7 @@ ggplot(data=barplotAbunds, aes(Timepoint, estAbund, fill=maskedRefGeneName)) +
 ```
 
 <P style="page-break-before: always">
-Below are similar barplots to the previous figure, yet show the relative abundance of the top 10 clones in each sample.  Cutoff values for binning clones as LowAbund are calulated based on the Estimated Absolute Abundance from each sample and are noted next to the cell types.
+Below are similar barplots to the previous figure, but the y-axis is scaled by proportion of the total, not number of cells sampled.  Comparison to the plot above helps distinguish samples with low yield of integration sites from samples with high yield and clonal expansions.  The key indicates the 10 most abundant clones in each sample. Cutoff values for binning clones as LowAbund (grey) are indicated at the top of each panel.
 
 ```{r sampleBarPlots, fig.height=12, fig.width=12}
 barplotAbundsBySample <- left_join(barplotAbundsBySample, n_timepoints_for_cell_type, by='CellType')
