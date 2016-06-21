@@ -119,6 +119,7 @@ ggplot(data=barplotAbunds, aes(Timepoint, estAbund, fill=maskedRefGeneName)) +
   )
 ```
 
+***
 <P style="page-break-before: always">
 Below are similar barplots to the previous figure, but the y-axis is scaled by proportion of the total, not number of cells sampled.  Comparison to the plot above helps distinguish samples with low yield of integration sites from samples with high yield and clonal expansions.  The key indicates the 10 most abundant clones in each sample. Cutoff values for binning clones as LowAbund (grey) are indicated at the top of each panel.
 
