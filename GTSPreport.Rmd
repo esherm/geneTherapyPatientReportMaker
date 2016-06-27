@@ -3,7 +3,8 @@
 `r format(Sys.Date(), "%b %d %Y")`
 
 ```{r setup,echo=FALSE}
-library(knitr)
+libs <- c("knitr", "RColorBrewer", "grid", "gridExtra")
+null <- suppressMessages(sapply(libs, library, character.only=TRUE))
 opts_chunk$set(
   fig.path=paste0(fig.path, "/"), 
   fig.align='left', 
@@ -86,31 +87,66 @@ The relative abundance of cell clones is summarized in the attached stacked bar 
  
 Integration sites were recovered using ligation mediated PCR after random fragmentation of genomic DNA, which reduces recovery biases compared with restriction enzyme cleavage. Relative abundance was not measured from read counts, which are known to be inaccurate, but from marks introduced into DNA specimens prior to PCR amplification using the SonicLength method [PMID:22238265](http://www.ncbi.nlm.nih.gov/pubmed/22238265).
 
-In the barplots below, any sites with Estimated Absolute Abundance below `r abundCutoff.barplots` are binned as LowAbund.
+In the barplots below, the x-axis indicates each sample type and time point, the y-axis is scaled by the number of cells sampled (SonicBreaks), where the range is taken from the most abundant sample.  The top 10 sites from each cell type have been named for the nearest gene and pooled over all cell types. The remaining sites are binned as low abundance (LowAbund; grey).
 
-```{r barPlots, fig.height=12, fig.width=12}
-gene_names_barplot <- unique(barplotAbunds$maskedRefGeneName)
+```{r totalBarPlots, fig.height=12, fig.width=12}
+gene_names_barplot <- frequent_genes_barplot
 colors_barplot <- colorRampPalette(brewer.pal(12, "Paired"))(length(gene_names_barplot))
 siteColors <- structure(colors_barplot, names=gene_names_barplot)
 siteColors["LowAbund"] <- "#E0E0E0"
 
-n_timpoints_for_cell_type <- barplotAbunds %>%
+n_timepoints_for_cell_type <- barplotAbunds %>%
     distinct(CellType, Timepoint) %>%
     group_by(CellType) %>%
     summarize(TimePointCount = n())
 
-n_timpoints_for_cell_type <- mutate(
-    n_timpoints_for_cell_type, 
+n_timepoints_for_cell_type <- mutate(
+    n_timepoints_for_cell_type, 
     FractionTimePointCount = TimePointCount / max(TimePointCount)
 )
 
-barplotAbunds <- left_join(barplotAbunds, n_timpoints_for_cell_type, by='CellType') 
+barplotAbunds <- left_join(barplotAbunds, n_timepoints_for_cell_type, by='CellType') 
 
-ggplot(data=barplotAbunds, aes(Timepoint, estAbundProp, fill=maskedRefGeneName)) +
-  geom_bar(aes(width=0.9*FractionTimePointCount), stat="identity") + facet_wrap(~CellType, scales="free") + scale_fill_manual(values=siteColors) +
-  labs(y="Relative Sonic Abundance", x="Timepoint", fill="GeneNames") +
-  scale_y_continuous(labels=percent)  +
-  theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1))
+ggplot(data=barplotAbunds, aes(Timepoint, estAbund, fill=maskedRefGeneName)) +
+  geom_bar(aes(), stat="identity") + 
+  facet_grid(CellType ~ ., scales="fixed") +
+  scale_fill_manual(values=siteColors) +
+  labs(y="Sonic Abundance", x="Timepoint", fill="GeneNames") +
+  scale_y_continuous(labels = scales::comma)  +
+  theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+    panel.background = element_rect(fill = "white"),
+    panel.border = element_rect(colour = "grey", fill=NA, size=0.5)
+  )
+```
+
+***
+<P style="page-break-before: always">
+Below are similar barplots to the previous figure, but the y-axis is scaled by proportion of the total, not number of cells sampled.  Comparison to the plot above helps distinguish samples with low yield of integration sites from samples with high yield and clonal expansions.  The key indicates the 10 most abundant clones in each sample. Cutoff values for binning clones as LowAbund (grey) are indicated at the top of each panel.
+
+```{r sampleBarPlots, fig.height=12, fig.width=12}
+barplotAbundsBySample <- left_join(barplotAbundsBySample, n_timepoints_for_cell_type, by='CellType')
+barplotAbundsBySample$CellType <- paste0(
+  as.character(barplotAbundsBySample$CellType),
+  "\n(cutoff = ",
+  abundCutoff.barplots[barplotAbundsBySample$CellType],
+  " cells)")
+barplotAbundsBySample <- split(barplotAbundsBySample, barplotAbundsBySample$CellType)
+
+#Relative abundance by CellTypes
+do.call(
+  grid.arrange,
+  lapply(barplotAbundsBySample, function(data){
+    plot <- ggplot(data=data, aes(Timepoint, estAbundProp, fill=maskedRefGeneName)) +
+      geom_bar(aes(width=0.9*FractionTimePointCount), stat="identity") + 
+      facet_wrap(~CellType, scales="free") +
+      scale_fill_manual(values=siteColors) +
+      labs(y="Relative Sonic Abundance", x="Timepoint", fill="GeneNames") +
+      scale_y_continuous(labels=percent)  +
+      theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1),
+          panel.background = element_rect(fill = "white"),
+          panel.border = element_rect(colour = "grey", fill=NA, size=0.5))
+    ggplotGrob(plot)
+}))
 ```
 ***
 <P style="page-break-before: always">
