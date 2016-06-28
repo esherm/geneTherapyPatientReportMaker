@@ -18,6 +18,11 @@ opts_chunk$set(
   dev=c("png","pdf","postscript"),
     results="asis")
 options(knitr.table.format = 'html')
+
+n_cell_types <- barplotAbunds %>%
+  select(CellType) %>%
+  distinct(CellType) %>%
+  nrow(.)
 ```
 
 ***
@@ -59,17 +64,79 @@ correction.
 kable(summaryTable, caption="Sample Summary Table", row.names=FALSE, format="html", digits = 4)
 ```
 
+`r percent_cutoff <- 0.2` 
+***
+<P style="page-break-before: always">
+## Do any uniquely mapped clones account for greater than `r percent(percent_cutoff)` of the total?
+For some trials, a reporting criteria is whether any cell clones expand to account for greater than `r percent(percent_cutoff)` of all clones. This is summarized below for subject `r patient`. Abundance is estimated using the SonicLength method. Data such as this must, of course, be interpreted in the context of results from other assays. Distances reported refer to transcription start sites (5').
 
-## Population Diversity over time points
+```{r TwentyPercSites, results="asis"}
+rows <- standardizedDereplicatedSites$estAbundProp >= percent_cutoff
+if( any(rows) ) {
 
-The graph below visualizes population based summaries as a function of time.
+df <- as.data.frame(standardizedDereplicatedSites[rows,])
+	df$Timepoint <- sortFactorTimepoints(df$Timepoint)
+    df <- arrange(df, Timepoint, CellType, estAbund)
+	df$position <- ifelse(df$strand=="+", df$start, df$end)
+	df$estAbundProp <- percent(df$estAbundProp)
+	colnames(df)[ colnames(df)=="seqnames" ]="Chr"
+	colnames(df)[ colnames(df)=="estAbund" ]="SonicAbundance"
+	colnames(df)[ colnames(df)=="estAbundProp" ]="Fraction"
+	colnames(df)[ colnames(df)=="estAbundRank" ]="Rank"
+	df$GeneName=df$nearest_refSeq_gene
+	df$nearest_Txn_Start_Dist=sprintf("%s(%s) %s", df$X5pnearest_refSeq_gene, df$X5pnearest_refSeq_geneOrt, df$nearest_refSeq_geneDist)
+	df$nearest_Onco_Txn_Start_Dist=sprintf("%s(%s) %s", df$X5pNrstOnco, df$X5pNrstOncoOrt, df$X5pNrstOncoDist)
+	needed <- c("Chr",
+		"strand",
+		"position",
+		"GTSP",
+		"SonicAbundance",
+		"Fraction",
+		"Rank",
+		"Timepoint",
+		"CellType",
+		"GeneName",
+		"nearest_Txn_Start_Dist",
+		"nearest_Onco_Txn_Start_Dist")
+	df <- subset(df, select=needed)
+	df <- arrange(df, desc(Fraction))
+	kable(df, caption=sprintf("Sites >%s of the Total", percent(percent_cutoff)), format="html", 		row.names=FALSE)
+} else {
+	cat(sprintf("<strong>No sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
+}
+```
 
-```{r pop_graphs, results='asis', fig.width=8, fig.height=6}
-if(length(unique(timepointPopulationInfo$group)) >1 ){
-  ggplot(data=timepointPopulationInfo, aes(group, value)) + geom_bar(stat="identity") + facet_wrap(~variable, scales="free") +
-    scale_x_discrete(limits = unique(timepointPopulationInfo$group)) +
-    theme(axis.text.x=element_text(angle=45, hjust=1, vjust=1))
-}else{cat(paste0("**Only one timepoint, ", unique(levels(timepointPopulationInfo$group)), ", present.  Insufficient data available to plot population estimators across timepoints.**"))}
+## Do any multihit event account for greater than `r percent(percent_cutoff)` of the total?
+
+Up until now, all the analysis has been looking at integration sites that can be uniquely mapped. But it is also helpful to look at reads finding multiple equally good alignments in the genome which can be reffered to as 'Multihits'. If an integration site occurred within a repeat element (i.e. Alus, LINE, SINE, etc), then it might be helpful to access those sites for potential detrimental effects. These collection of sequences are analyzed separately due to their ambiguity. To make some sense of these multihits, we bin any sequence(s) which share 1 or more genomic locations hence forming psuedo-collections which can be reffered to as OTUs (operation taxonomic units). Once the OTUs are formed, we compare breakpoints of unique sites and multihits. The idea is to see if there are any multihits which higher in abundance than a unique site in a given sample. Below is a table similar to the one shown previously except we show any events instead of genomic locations which might account for greater than `r percent(percent_cutoff)` of all clones in the data.
+
+```{r TwentyPercSitesMulti, results="asis"}
+if( nrow(sites.multi) < 1 ) {
+	cat(sprintf("<strong>No multihits sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
+} else { 
+total.abundance <- sum(mcols(standardizedDereplicatedSites)$estAbund,
+	sites.multi$estAbund)
+
+is.multi.expanded <- sites.multi$estAbund > total.abundance*percent_cutoff
+
+if( !any(is.multi.expanded) ) { 
+	cat(sprintf("<strong>No multihits sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
+} else {
+	df <- subset(sites.multi, is.multi.expanded)
+	df <- data.frame(
+		##multihitEvent=paste0("multihit", df$multihitID),
+		multihitEvent="multihit",
+		GTSP=df$GTSP,
+		SonicAbundance=df$estAbund,
+		Fraction=df$estAbund/total.abundance,
+		Rank=df$Rank,
+		Timepoint=df$Timepoint,
+		CellType=df$CellType
+	)			
+	kable(df, caption=sprintf("Multihits Sites >%s of the Total", percent(percent_cutoff)), format="html", row.names=FALSE)
+
+	}
+}
 ```
 
 ***
@@ -89,7 +156,7 @@ Integration sites were recovered using ligation mediated PCR after random fragme
 
 In the barplots below, the x-axis indicates each sample type and time point, the y-axis is scaled by the number of cells sampled (SonicBreaks), where the range is taken from the most abundant sample.  The top 10 sites from each cell type have been named for the nearest gene and pooled over all cell types. The remaining sites are binned as low abundance (LowAbund; grey).
 
-```{r totalBarPlots, fig.height=12, fig.width=12}
+```{r totalBarPlots, fig.height=(2*n_cell_types), fig.width=12}
 gene_names_barplot <- frequent_genes_barplot
 colors_barplot <- colorRampPalette(brewer.pal(12, "Paired"))(length(gene_names_barplot))
 siteColors <- structure(colors_barplot, names=gene_names_barplot)
@@ -123,7 +190,7 @@ ggplot(data=barplotAbunds, aes(Timepoint, estAbund, fill=maskedRefGeneName)) +
 <P style="page-break-before: always">
 Below are similar barplots to the previous figure, but the y-axis is scaled by proportion of the total, not number of cells sampled.  Comparison to the plot above helps distinguish samples with low yield of integration sites from samples with high yield and clonal expansions.  The key indicates the 10 most abundant clones in each sample. Cutoff values for binning clones as LowAbund (grey) are indicated at the top of each panel.
 
-```{r sampleBarPlots, fig.height=12, fig.width=12}
+```{r sampleBarPlots, fig.height=6*(1+as.integer(n_cell_types/3)), fig.width=12}
 barplotAbundsBySample <- left_join(barplotAbundsBySample, n_timepoints_for_cell_type, by='CellType')
 barplotAbundsBySample$CellType <- paste0(
   as.character(barplotAbundsBySample$CellType),
@@ -133,9 +200,8 @@ barplotAbundsBySample$CellType <- paste0(
 barplotAbundsBySample <- split(barplotAbundsBySample, barplotAbundsBySample$CellType)
 
 #Relative abundance by CellTypes
-do.call(
-  grid.arrange,
-  lapply(barplotAbundsBySample, function(data){
+grid.arrange(
+  grobs = lapply(barplotAbundsBySample, function(data){
     plot <- ggplot(data=data, aes(Timepoint, estAbundProp, fill=maskedRefGeneName)) +
       geom_bar(aes(width=0.9*FractionTimePointCount), stat="identity") + 
       facet_wrap(~CellType, scales="free") +
@@ -146,13 +212,16 @@ do.call(
           panel.background = element_rect(fill = "white"),
           panel.border = element_rect(colour = "grey", fill=NA, size=0.5))
     ggplotGrob(plot)
-}))
+  }), 
+  ncol = 3,
+  nrow = 1+as.integer(n_cell_types/3)
+)
 ```
 ***
 <P style="page-break-before: always">
 Here is another way to perceive top ranking integration sites by genes within each celltype.  Any sites with Estimated Absolute Abundance below `r abundCutoff.detailed` are binned as LowAbund.
 
-```{r sitetype_heatmap, fig.width=12, fig.height=16}
+```{r sitetype_heatmap, fig.width=12, fig.height=10*(1+as.integer(n_cell_types/6))}
 ggplot(data=detailedAbunds, aes(Timepoint, maskedRefGeneName, fill=estAbundProp)) + geom_tile() +
   scale_fill_continuous(name='Relative\nAbundance', labels=percent, low="#E5F5E0", high="#2B8CBE") + 
   facet_wrap(~CellType, scales="free_x", ncol=6) + labs(y="SiteType", x="Timepoint") +
@@ -204,84 +273,9 @@ badActorOut <- lapply(badActors, function(badActor){
 ```
 `r knit(text = unlist(badActorOut))`
 
-`r percent_cutoff <- 0.2`  
 ***
 <P style="page-break-before: always">
-## Do any uniquely mapped clones account for greater than `r percent(percent_cutoff)` of the total?
-For some trials, a reporting criteria is whether any cell clones expand to account for greater than `r percent(percent_cutoff)` of all clones. This is summarized below for subject `r patient`. Abundance is estimated using the SonicLength method. Data such as this must, of course, be interpreted in the context of results from other assays. Distances reported refer to transcription start sites (5').
-
-```{r TwentyPercSites, results="asis"}
-rows <- standardizedDereplicatedSites$estAbundProp >= percent_cutoff
-if( any(rows) ) {
-
-df <- as.data.frame(standardizedDereplicatedSites[rows,])
-	df$Timepoint <- sortFactorTimepoints(df$Timepoint)
-    df <- arrange(df, Timepoint, CellType, estAbund)
-	df$position <- ifelse(df$strand=="+", df$start, df$end)
-	df$estAbundProp <- percent(df$estAbundProp)
-	colnames(df)[ colnames(df)=="seqnames" ]="Chr"
-	colnames(df)[ colnames(df)=="estAbund" ]="SonicAbundance"
-	colnames(df)[ colnames(df)=="estAbundProp" ]="Fraction"
-	colnames(df)[ colnames(df)=="estAbundRank" ]="Rank"
-	df$GeneName=df$nearest_refSeq_gene
-	df$nearest_Txn_Start_Dist=sprintf("%s(%s) %s", df$X5pnearest_refSeq_gene, df$X5pnearest_refSeq_geneOrt, df$nearest_refSeq_geneDist)
-	df$nearest_Onco_Txn_Start_Dist=sprintf("%s(%s) %s", df$X5pNrstOnco, df$X5pNrstOncoOrt, df$X5pNrstOncoDist)
-	needed <- c("Chr",
-		"strand",
-		"position",
-		"GTSP",
-		"SonicAbundance",
-		"Fraction",
-		"Rank",
-		"Timepoint",
-		"CellType",
-		"GeneName",
-		"nearest_Txn_Start_Dist",
-		"nearest_Onco_Txn_Start_Dist")
-	df <- subset(df, select=needed)
-	df <- arrange(df, desc(Fraction))
-	kable(df, caption=sprintf("Sites >%s of the Total", percent(percent_cutoff)), format="html", 		row.names=FALSE)
-} else {
-	cat(sprintf("<strong>No sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
-}
-```
-
-### Do any multihit event account for greater than `r percent(percent_cutoff)` of the total?
-
-Up until now, all the analysis has been looking at integration sites that can be uniquely mapped. But it is also helpful to look at reads finding multiple equally good alignments in the genome which can be reffered to as 'Multihits'. If an integration site occurred within a repeat element (i.e. Alus, LINE, SINE, etc), then it might be helpful to access those sites for potential detrimental effects. These collection of sequences are analyzed separately due to their ambiguity. To make some sense of these multihits, we bin any sequence(s) which share 1 or more genomic locations hence forming psuedo-collections which can be reffered to as OTUs (operation taxonomic units). Once the OTUs are formed, we compare breakpoints of unique sites and multihits. The idea is to see if there are any multihits which higher in abundance than a unique site in a given sample. Below is a table similar to the one shown previously except we show any events instead of genomic locations which might account for greater than `r percent(percent_cutoff)` of all clones in the data.
-
-```{r TwentyPercSitesMulti, results="asis"}
-if( nrow(sites.multi) < 1 ) {
-	cat(sprintf("<strong>No multihits sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
-} else { 
-total.abundance <- sum(mcols(standardizedDereplicatedSites)$estAbund,
-	sites.multi$estAbund)
-
-is.multi.expanded <- sites.multi$estAbund > total.abundance*percent_cutoff
-
-if( !any(is.multi.expanded) ) { 
-	cat(sprintf("<strong>No multihits sites found in this patient which are greater than %s of the total data.</strong>", percent(percent_cutoff)))
-} else {
-	df <- subset(sites.multi, is.multi.expanded)
-	df <- data.frame(
-		##multihitEvent=paste0("multihit", df$multihitID),
-		multihitEvent="multihit",
-		GTSP=df$GTSP,
-		SonicAbundance=df$estAbund,
-		Fraction=df$estAbund/total.abundance,
-		Rank=df$Rank,
-		Timepoint=df$Timepoint,
-		CellType=df$CellType
-	)			
-	kable(df, caption=sprintf("Multihits Sites >%s of the Total", percent(percent_cutoff)), format="html", row.names=FALSE)
-
-	}
-}
-```
-
-***
-<P style="page-break-before: always">
-## What is the most frequently occuring gene types in subject `r patient`?
+## What are the most frequently occuring gene types in subject `r patient`?
 `r max_num_words=100`  
 
 The word clouds below show the abundances of integration sites as designated by genenames for each sample. Each word cloud is labled by the timepoint, celltype, and the range of sonic abundance for the top `r max_num_words` sites.
