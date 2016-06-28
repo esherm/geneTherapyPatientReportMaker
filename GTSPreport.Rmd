@@ -18,6 +18,11 @@ opts_chunk$set(
   dev=c("png","pdf","postscript"),
     results="asis")
 options(knitr.table.format = 'html')
+
+n_cell_types <- barplotAbunds %>%
+  select(CellType) %>%
+  distinct(CellType) %>%
+  nrow(.)
 ```
 
 ***
@@ -151,7 +156,7 @@ Integration sites were recovered using ligation mediated PCR after random fragme
 
 In the barplots below, the x-axis indicates each sample type and time point, the y-axis is scaled by the number of cells sampled (SonicBreaks), where the range is taken from the most abundant sample.  The top 10 sites from each cell type have been named for the nearest gene and pooled over all cell types. The remaining sites are binned as low abundance (LowAbund; grey).
 
-```{r totalBarPlots, fig.height=12, fig.width=12}
+```{r totalBarPlots, fig.height=(2*n_cell_types), fig.width=12}
 gene_names_barplot <- frequent_genes_barplot
 colors_barplot <- colorRampPalette(brewer.pal(12, "Paired"))(length(gene_names_barplot))
 siteColors <- structure(colors_barplot, names=gene_names_barplot)
@@ -185,7 +190,7 @@ ggplot(data=barplotAbunds, aes(Timepoint, estAbund, fill=maskedRefGeneName)) +
 <P style="page-break-before: always">
 Below are similar barplots to the previous figure, but the y-axis is scaled by proportion of the total, not number of cells sampled.  Comparison to the plot above helps distinguish samples with low yield of integration sites from samples with high yield and clonal expansions.  The key indicates the 10 most abundant clones in each sample. Cutoff values for binning clones as LowAbund (grey) are indicated at the top of each panel.
 
-```{r sampleBarPlots, fig.height=12, fig.width=12}
+```{r sampleBarPlots, fig.height=6*(1+as.integer(n_cell_types/3)), fig.width=12}
 barplotAbundsBySample <- left_join(barplotAbundsBySample, n_timepoints_for_cell_type, by='CellType')
 barplotAbundsBySample$CellType <- paste0(
   as.character(barplotAbundsBySample$CellType),
@@ -195,9 +200,8 @@ barplotAbundsBySample$CellType <- paste0(
 barplotAbundsBySample <- split(barplotAbundsBySample, barplotAbundsBySample$CellType)
 
 #Relative abundance by CellTypes
-do.call(
-  grid.arrange,
-  lapply(barplotAbundsBySample, function(data){
+grid.arrange(
+  grobs = lapply(barplotAbundsBySample, function(data){
     plot <- ggplot(data=data, aes(Timepoint, estAbundProp, fill=maskedRefGeneName)) +
       geom_bar(aes(width=0.9*FractionTimePointCount), stat="identity") + 
       facet_wrap(~CellType, scales="free") +
@@ -208,13 +212,16 @@ do.call(
           panel.background = element_rect(fill = "white"),
           panel.border = element_rect(colour = "grey", fill=NA, size=0.5))
     ggplotGrob(plot)
-}))
+  }), 
+  ncol = 3,
+  nrow = 1+as.integer(n_cell_types/3)
+)
 ```
 ***
 <P style="page-break-before: always">
 Here is another way to perceive top ranking integration sites by genes within each celltype.  Any sites with Estimated Absolute Abundance below `r abundCutoff.detailed` are binned as LowAbund.
 
-```{r sitetype_heatmap, fig.width=12, fig.height=16}
+```{r sitetype_heatmap, fig.width=12, fig.height=10*(1+as.integer(n_cell_types/6))}
 ggplot(data=detailedAbunds, aes(Timepoint, maskedRefGeneName, fill=estAbundProp)) + geom_tile() +
   scale_fill_continuous(name='Relative\nAbundance', labels=percent, low="#E5F5E0", high="#2B8CBE") + 
   facet_wrap(~CellType, scales="free_x", ncol=6) + labs(y="SiteType", x="Timepoint") +
