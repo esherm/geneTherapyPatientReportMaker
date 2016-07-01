@@ -156,7 +156,7 @@ Integration sites were recovered using ligation mediated PCR after random fragme
 
 In the barplots below, the x-axis indicates each sample type and time point, the y-axis is scaled by the number of cells sampled (SonicBreaks), where the range is taken from the most abundant sample.  The top 10 sites from each cell type have been named for the nearest gene and pooled over all cell types. The remaining sites are binned as low abundance (LowAbund; grey).
 
-```{r totalBarPlots, fig.height=ifelse(n_cell_types == 1, 4, 2*n_cell_types), fig.width=12}
+```{r totalBarPlots, fig.height=ifelse(n_cell_types >= 2, 6, 2*n_cell_types), fig.width=12}
 gene_names_barplot <- frequent_genes_barplot
 colors_barplot <- colorRampPalette(brewer.pal(12, "Paired"))(length(gene_names_barplot))
 siteColors <- structure(colors_barplot, names=gene_names_barplot)
