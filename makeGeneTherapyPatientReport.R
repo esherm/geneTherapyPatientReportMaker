@@ -1,3 +1,19 @@
+#    This source code file is a component of the larger INSPIIRED genomic analysis software package.
+#    Copyright (C) 2016 Frederic Bushman
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
 options(stringsAsFactors = FALSE)
 
 #' set all argumentgs for the script
@@ -384,10 +400,19 @@ timepointPopulationInfo <- melt(timepointPopulationInfo, "group")
 
 #==================Get abundance for multihit events=====================
 message("Fetching multihit sites and estimating abundance")
+
+options(useFancyQuotes=FALSE)
+sql <- paste0("select samples.sampleName, samples.refGenome, multihitpositions.multihitID, ",
+              "multihitlengths.length from multihitlengths left join multihitpositions on ",
+              "multihitpositions.multihitID = multihitlengths.multihitID left join samples on ",
+              "samples.sampleID = multihitpositions.sampleID where sampleName in (",
+               paste0(sQuote(unique(sampleName_GTSP$sampleName)), collapse=","),  ")")
+
+# Create a new DB connection.
+# This connection is not a dplyr src_sql() connection like the previous dbConns.
 dbConn <- dbConnect(MySQL(), group=db_group_sites)
-info <- dbGetInfo(dbConn)
-dbConn <- src_sql("mysql", dbConn, info = info)
-sites.multi <- merge( suppressWarnings(getMultihitLengths(sampleName_GTSP, dbConn)), sampleName_GTSP)
+multiHitLengths <- unique(dbGetQuery(dbConn, sql))
+sites.multi <- merge(multiHitLengths, sampleName_GTSP)
 
 if( nrow(sites.multi) > 0 ) {
     sites.multi <- (sites.multi %>%
