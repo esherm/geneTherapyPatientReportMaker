@@ -224,10 +224,10 @@ Here is another way to perceive top ranking integration sites by genes within ea
 nrows_plot <- as.integer(n_cell_types/6) + 1*ifelse( n_cell_types %% 6 > 0, 1, 0)
 ncols_plot <- ifelse(
   nrows_plot > 1,
-  as.integer(n_cell_types / plot_nrows) + ifelse(n_cell_types %% 2 == 1, 1, 0),
+  as.integer(n_cell_types / nrows_plot) + ifelse(n_cell_types %% 2 == 1, 1, 0),
   n_cell_types)
 ```
-```{r sitetype_heatmap, fig.width=12, fig.height=10*(1+as.integer((n_cell_types-0.1)/6))}
+```{r sitetype_heatmap, fig.width=2*ncols_plot+2, fig.height=10*(1+as.integer((n_cell_types-0.1)/6))}
 ggplot(data=detailedAbunds, aes(Timepoint, maskedRefGeneName, fill=estAbundProp)) + geom_tile() +
   scale_fill_continuous(name='Relative\nAbundance', labels=percent, low="#E5F5E0", high="#2B8CBE") +
   facet_wrap(~CellType, scales="free_x", ncol=ncols_plot) + labs(y="SiteType", x="Timepoint") +
