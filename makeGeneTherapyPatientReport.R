@@ -32,8 +32,8 @@ set_args <- function(...) {
     parser$add_argument("-c", default="./INSPIIRED.yml", help="path to INSPIIRED configuration file.")
     parser$add_argument("-s", action='store_true', help="abundance by sonicLength package (Berry, C. 2012)")
     parser$add_argument("-r", "--ref_genome", default="hg18", help="reference genome used for all samples")
-    parser$add_argument("--sites_group", default="intsites_miseq.read", help="group to use for integration sites db from ~/.my.cnf")
-    parser$add_argument("--gtsp_group", default="specimen_management", help="group to use for specimen management GTSP db from ~/.my.cnf")
+#    parser$add_argument("--sites_group", default="intsites_miseq.read", help="group to use for integration sites db from ~/.my.cnf")
+#    parser$add_argument("--gtsp_group", default="specimen_management", help="group to use for specimen management GTSP db from ~/.my.cnf")
     parser$add_argument("--ref_seq", help="read Ref Seq genes from file")
     parser$add_argument("-o", "--output", help='HTML and MD file names instead of Trial.Patient.Date name')
 
@@ -71,8 +71,8 @@ config <<- yaml.load_file(arguments$c)
 
 ## defaults:
 use.sonicLength <-  ! arguments$s
-db_group_sites <- arguments$sites_group
-db_group_gtsp <- arguments$gtsp_group
+#db_group_sites <- arguments$sites_group
+#db_group_gtsp <- arguments$gtsp_group
 ref_genome <- arguments$ref_genome
 codeDir <- arguments$codeDir
 ref_seq_filename <- arguments$ref_seq
@@ -110,28 +110,26 @@ print(sampleName_GTSP)
 # Connect to my database
 if (config$dataBase == 'mysql'){
    stopifnot(file.exists("~/.my.cnf"))
-   stopifnot(file.info("~/.my.cnf")$mode == as.octmode("600"))
    dbConn <- dbConnect(MySQL(), group=config$mysqlConnectionGroup)
    info <- dbGetInfo(dbConn)
    dbConn <- src_sql("mysql", dbConn, info = info)
+   dbConnSampleManagemnt <-  dbConnect(MySQL(), group=config$mysqlSpecimenManagementGroup)
 }else if (config$dataBase == 'sqlite') {
    dbConn <- dbConnect(RSQLite::SQLite(), dbname=config$sqliteIntSitesDB)
    info <- dbGetInfo(dbConn)
    dbConn <- src_sql("sqlite", dbConn, info = info)
+   dbConnSampleManagemnt <- dbConnect(RSQLite::SQLite(), dbname=config$sqliteSampleManagement)
 } else { stop('Can not establish a connection to the database') }
 
 if( !all(setNameExists(sampleName_GTSP, dbConn)) ) {
-    sampleNameIn <- paste(sprintf("'%s'", sampleName_GTSP$sampleName),
-                          collapse=",")
+    sampleNameIn <- paste(sprintf("'%s'", sampleName_GTSP$sampleName), collapse=",")
+
     q <- sprintf("SELECT * FROM samples WHERE sampleName IN (%s)", sampleNameIn)
     message("\nChecking database:\n",q,"\n")
 
-
-    ### write.table(tbl(dbConn, sql(q)), quote=FALSE, row.name=FALSE)
     t <- dbSendQuery(con, q)
     write.table(t)
 
-    message()
     stop("Was --ref_genome specified correctly or did query return all entries")
    } else {
     message("All samples are in DB.")
@@ -139,29 +137,22 @@ if( !all(setNameExists(sampleName_GTSP, dbConn)) ) {
 
 read_sites_sample_GTSP <- get_read_site_totals(sampleName_GTSP, dbConn)
 
-get_metadata_for_GTSP <- function(GTSP, db_group) {
+get_metadata_for_GTSP <- function(GTSP, GTSPDBconn) {
     stopifnot(length(GTSP) == length(unique(GTSP)))
 
     GTSP = paste(sQuote(GTSP), collapse=',')
-    
-    if (config$dataBase == 'mysql'){
-      GTSPDBconn <- dbConnect(MySQL(), group=config$mysqlSpecimenManagementGroup)
-    }else if (config$dataBase == 'sqlite') {
-      GTSPDBconn <- dbConnect(RSQLite::SQLite(), dbname=config$sqliteSampleManagement)
-    } else { stop('Can not establish a connection to the database') }
 
     query = paste0("SELECT Trial, SpecimenAccNum, Patient, Timepoint, CellType, SamplePrepMethod, VCN
                    FROM gtsp
                    WHERE SpecimenAccNum in (", GTSP, ");");
     
     sets <- dbGetQuery(GTSPDBconn, query)
-    dbDisconnect(GTSPDBconn)
 
     names(sets) <- c("Trial", "GTSP", "Patient", "Timepoint", "CellType", "FragMethod", "VCN")
     sets
 }
 
-sets <- get_metadata_for_GTSP(unique(sampleName_GTSP$GTSP), db_group_gtsp)
+sets <- get_metadata_for_GTSP(unique(sampleName_GTSP$GTSP), dbConnSampleManagemnt)
 
 ## some clean up for typos, dates, spaces etc
 sets[sets$Timepoint=="NULL", "Timepoint"] <- "d0"
@@ -455,7 +446,17 @@ sql <- paste0("select samples.sampleName, samples.refGenome, multihitpositions.m
 
 # Create a new DB connection.
 # This connection is not a dplyr src_sql() connection like the previous dbConns.
-dbConn <- dbConnect(MySQL(), group=db_group_sites)
+
+
+# Connect to my database
+if (config$dataBase == 'mysql'){
+   stopifnot(file.exists("~/.my.cnf"))
+   dbConn <- dbConnect(MySQL(), group=config$mysqlConnectionGroup)
+}else if (config$dataBase == 'sqlite') {
+   dbConn <- dbConnect(RSQLite::SQLite(), dbname=config$sqliteIntSitesDB)
+} else { stop('Can not establish a connection to the database') }
+
+
 multiHitLengths <- unique(dbGetQuery(dbConn, sql))
 sites.multi <- merge(multiHitLengths, sampleName_GTSP)
 
