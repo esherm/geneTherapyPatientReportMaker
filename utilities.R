@@ -1,4 +1,21 @@
-library(stringr)
+#    This source code file is a component of the larger INSPIIRED genomic analysis software package.
+#    Copyright (C) 2016 Frederic Bushman
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+
+stopifnot( require(stringr) )
 
 sanitize <- function(string) {
   result <- gsub("&", "\\&", string, fixed = TRUE)
@@ -48,6 +65,7 @@ generate_word_bubble <- function(gene_abundance, max_num_words=500) {
 #' @param vector of dates to convert
 #' @return vector of days
 mdy_to_day <- function(dates) {
+  dates <- sub("\\.$", "", sub("([dmy][0-9]+\\.*[0-9]*).*", "\\1", dates))
   stopifnot(check_date_format(dates))
   mdy_letter <- get_mdy_letter(dates)
   mdy_value <- get_mdy_value(dates)
@@ -116,3 +134,44 @@ prepSiteList <- function(sites){
   sites$Timepoint <- sortFactorTimepoints(sites$Timepoint)
   sites
 }
+
+#Order barplot so "LowAbund" is always on the top of the plot
+order_barplot <- function(barplotAbunds){
+  barplotAbunds <- arrange(barplotAbunds, estAbundProp)
+  barplotAbunds$ref <- with(barplotAbunds, paste0(Timepoint, ":", CellType))
+  Abunds <- split(barplotAbunds, barplotAbunds$ref)
+  Abunds <- lapply(Abunds, function(x){
+    genes <- x$maskedRefGeneName
+    pos_lowAbund <- grep("LowAbund", genes)
+    if(length(pos_lowAbund) == 0){
+      x <- x
+    }else if(length(genes) == 1){
+      x <- x
+    }else if(pos_lowAbund == 1){
+      new_genes <- c(genes[2:length(genes)], "LowAbund")
+      gene_order <- as.integer(sapply(new_genes, function(y){
+        grep(y, x$maskedRefGeneName)
+        }))
+      x <- x[gene_order,]
+    }else if(pos_lowAbund == length(genes)){
+      x <- x
+    }else{
+      pos_before <- pos_lowAbund-1
+      pos_after <- pos_lowAbund+1
+      new_genes <- c(genes[1:pos_before], 
+                    genes[pos_after:length(genes)],
+                    "LowAbund")
+      gene_order <- as.integer(sapply(new_genes, function(y){
+        grep(y, x$maskedRefGeneName)
+      }))
+      x <- x[gene_order,]
+    }
+    x$ref <- NULL
+    x
+  })
+  barplotAbunds <- do.call(rbind, lapply(1:length(Abunds), function(i){Abunds[[i]]}))
+  barplotAbunds
+}
+
+
+
